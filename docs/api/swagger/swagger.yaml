@@ -1,0 +1,25 @@
+basePath: /api
+host: localhost:8080
+info:
+  contact:
+    email: support@xyphos.io
+    name: API Support
+    url: https://xyphos.io/support
+  description: A secure multi-tenant key management system that provides cryptographic
+    operations and key management capabilities.
+  license:
+    name: MIT
+    url: https://github.com/yourusername/xyphos/blob/main/LICENSE
+  termsOfService: https://xyphos.io/terms
+  title: Xyphos API
+  version: "1.0"
+paths: {}
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

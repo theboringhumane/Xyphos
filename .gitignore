@@ -1,0 +1,59 @@
+# 🔒 Dependencies and build artifacts
+node_modules/
+dist/
+build/
+*.log
+
+# 🔑 Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+*.cert
+
+# 📦 Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 🛠️ IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 🗄️ Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# 📝 Documentation generated files
+docs/_site/
+docs/.docusaurus
+docs/build/
+
+# 🔨 Build and test artifacts
+coverage/
+.nyc_output/
+*.test
+*.out
+
+# 🚀 Deployment files
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraformrc
+terraform.rc
+
+# 🔐 Generated crypto files
+*.key.enc
+*.sig
+*.hmac
+
+.venv/
+
+bin/
+data/*
+.cursorrules
+.cursor/

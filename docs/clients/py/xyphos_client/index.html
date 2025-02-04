@@ -1,0 +1,1184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.5">
+<title>xyphos_client API documentation</title>
+<meta name="description" content="🔐 Xyphos Client - A secure multi-tenant key management system client">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Package <code>xyphos_client</code></h1>
+</header>
+<section id="section-intro">
+<p>🔐 Xyphos Client - A secure multi-tenant key management system client</p>
+</section>
+<section>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+<dl>
+<dt><code class="name"><a title="xyphos_client.client" href="client.html">xyphos_client.client</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt><code class="name"><a title="xyphos_client.exceptions" href="exceptions.html">xyphos_client.exceptions</a></code></dt>
+<dd>
+<div class="desc"><p>🚨 Xyphos Client Exceptions …</p></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="xyphos_client.AuthenticationError"><code class="flex name class">
+<span>class <span class="ident">AuthenticationError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class AuthenticationError(XyphosError):
+    &#34;&#34;&#34;🔑 Raised when authentication fails (e.g., invalid credentials, expired token)&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>🔑 Raised when authentication fails (e.g., invalid credentials, expired token)</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.ClientConfig"><code class="flex name class">
+<span>class <span class="ident">ClientConfig</span></span>
+<span>(</span><span>base_url: str,<br>client_id: str,<br>client_secret: str,<br>timeout: int = 30,<br>retry_config: <a title="xyphos_client.client.RetryConfig" href="client.html#xyphos_client.client.RetryConfig">RetryConfig</a> = &lt;factory&gt;)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class ClientConfig:
+    &#34;&#34;&#34;🔧 Configuration for the Xyphos client&#34;&#34;&#34;
+    base_url: str
+    client_id: str
+    client_secret: str
+    timeout: int = 30
+    retry_config: RetryConfig = field(default_factory=RetryConfig)</code></pre>
+</details>
+<div class="desc"><p>🔧 Configuration for the Xyphos client</p></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="xyphos_client.ClientConfig.base_url"><code class="name">var <span class="ident">base_url</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.ClientConfig.client_id"><code class="name">var <span class="ident">client_id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.ClientConfig.client_secret"><code class="name">var <span class="ident">client_secret</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.ClientConfig.retry_config"><code class="name">var <span class="ident">retry_config</span> : <a title="xyphos_client.client.RetryConfig" href="client.html#xyphos_client.client.RetryConfig">RetryConfig</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.ClientConfig.timeout"><code class="name">var <span class="ident">timeout</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xyphos_client.ConfigurationError"><code class="flex name class">
+<span>class <span class="ident">ConfigurationError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ConfigurationError(XyphosError):
+    &#34;&#34;&#34;⚙️ Raised when there are client configuration issues&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>⚙️ Raised when there are client configuration issues</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.CryptoKey"><code class="flex name class">
+<span>class <span class="ident">CryptoKey</span></span>
+<span>(</span><span>id: str,<br>name: str,<br>algorithm: str,<br>purpose: str,<br>rotation_period: int,<br>created_at: datetime.datetime,<br>next_rotation: datetime.datetime,<br>version: int)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class CryptoKey:
+    &#34;&#34;&#34;🔑 CryptoKey resource&#34;&#34;&#34;
+    id: str
+    name: str
+    algorithm: str
+    purpose: str
+    rotation_period: int
+    created_at: datetime
+    next_rotation: datetime
+    version: int
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;CryptoKey&#39;:
+        return cls(
+            id=data[&#39;id&#39;],
+            name=data[&#39;name&#39;],
+            algorithm=data[&#39;algorithm&#39;],
+            purpose=data[&#39;purpose&#39;],
+            rotation_period=data[&#39;rotation_period&#39;],
+            created_at=datetime.fromisoformat(data[&#39;created_at&#39;]),
+            next_rotation=datetime.fromisoformat(data[&#39;next_rotation&#39;]),
+            version=data[&#39;version&#39;]
+        )</code></pre>
+</details>
+<div class="desc"><p>🔑 CryptoKey resource</p></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="xyphos_client.CryptoKey.algorithm"><code class="name">var <span class="ident">algorithm</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.CryptoKey.created_at"><code class="name">var <span class="ident">created_at</span> : datetime.datetime</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.CryptoKey.id"><code class="name">var <span class="ident">id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.CryptoKey.name"><code class="name">var <span class="ident">name</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.CryptoKey.next_rotation"><code class="name">var <span class="ident">next_rotation</span> : datetime.datetime</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.CryptoKey.purpose"><code class="name">var <span class="ident">purpose</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.CryptoKey.rotation_period"><code class="name">var <span class="ident">rotation_period</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.CryptoKey.version"><code class="name">var <span class="ident">version</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="xyphos_client.CryptoKey.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="xyphos_client.client.CryptoKey" href="client.html#xyphos_client.client.CryptoKey">CryptoKey</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xyphos_client.InvalidInputError"><code class="flex name class">
+<span>class <span class="ident">InvalidInputError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class InvalidInputError(XyphosError):
+    &#34;&#34;&#34;⚠️ Raised when invalid input is provided to an operation&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>⚠️ Raised when invalid input is provided to an operation</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.KeyRing"><code class="flex name class">
+<span>class <span class="ident">KeyRing</span></span>
+<span>(</span><span>id: str, name: str, created_at: datetime.datetime)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class KeyRing:
+    &#34;&#34;&#34;💍 KeyRing resource&#34;&#34;&#34;
+    id: str
+    name: str
+    created_at: datetime
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;KeyRing&#39;:
+        return cls(
+            id=data[&#39;id&#39;],
+            name=data[&#39;name&#39;],
+            created_at=datetime.fromisoformat(data[&#39;created_at&#39;])
+        )</code></pre>
+</details>
+<div class="desc"><p>💍 KeyRing resource</p></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="xyphos_client.KeyRing.created_at"><code class="name">var <span class="ident">created_at</span> : datetime.datetime</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.KeyRing.id"><code class="name">var <span class="ident">id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.KeyRing.name"><code class="name">var <span class="ident">name</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="xyphos_client.KeyRing.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="xyphos_client.client.KeyRing" href="client.html#xyphos_client.client.KeyRing">KeyRing</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xyphos_client.Location"><code class="flex name class">
+<span>class <span class="ident">Location</span></span>
+<span>(</span><span>id: str, name: str, created_at: datetime.datetime)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class Location:
+    &#34;&#34;&#34;📍 Location resource&#34;&#34;&#34;
+    id: str
+    name: str
+    created_at: datetime
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;Location&#39;:
+        return cls(
+            id=data[&#39;id&#39;],
+            name=data[&#39;name&#39;],
+            created_at=datetime.fromisoformat(data[&#39;created_at&#39;])
+        )</code></pre>
+</details>
+<div class="desc"><p>📍 Location resource</p></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="xyphos_client.Location.created_at"><code class="name">var <span class="ident">created_at</span> : datetime.datetime</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.Location.id"><code class="name">var <span class="ident">id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.Location.name"><code class="name">var <span class="ident">name</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="xyphos_client.Location.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="xyphos_client.client.Location" href="client.html#xyphos_client.client.Location">Location</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xyphos_client.NetworkError"><code class="flex name class">
+<span>class <span class="ident">NetworkError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class NetworkError(XyphosError):
+    &#34;&#34;&#34;🌐 Raised when network-related issues occur&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>🌐 Raised when network-related issues occur</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.NotFoundError"><code class="flex name class">
+<span>class <span class="ident">NotFoundError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class NotFoundError(XyphosError):
+    &#34;&#34;&#34;🔍 Raised when a requested resource is not found&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>🔍 Raised when a requested resource is not found</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.PermissionError"><code class="flex name class">
+<span>class <span class="ident">PermissionError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PermissionError(XyphosError):
+    &#34;&#34;&#34;🚫 Raised when the client lacks permission to perform an operation&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>🚫 Raised when the client lacks permission to perform an operation</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.Project"><code class="flex name class">
+<span>class <span class="ident">Project</span></span>
+<span>(</span><span>id: str, name: str, description: str, created_at: datetime.datetime)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class Project:
+    &#34;&#34;&#34;📦 Project resource&#34;&#34;&#34;
+    id: str
+    name: str
+    description: str
+    created_at: datetime
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -&gt; &#39;Project&#39;:
+        return cls(
+            id=data[&#39;id&#39;],
+            name=data[&#39;name&#39;],
+            description=data[&#39;description&#39;],
+            created_at=datetime.fromisoformat(data[&#39;created_at&#39;])
+        )</code></pre>
+</details>
+<div class="desc"><p>📦 Project resource</p></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="xyphos_client.Project.created_at"><code class="name">var <span class="ident">created_at</span> : datetime.datetime</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.Project.description"><code class="name">var <span class="ident">description</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.Project.id"><code class="name">var <span class="ident">id</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.Project.name"><code class="name">var <span class="ident">name</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="xyphos_client.Project.from_dict"><code class="name flex">
+<span>def <span class="ident">from_dict</span></span>(<span>data: Dict[str, Any]) ‑> <a title="xyphos_client.client.Project" href="client.html#xyphos_client.client.Project">Project</a></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xyphos_client.RateLimitError"><code class="flex name class">
+<span>class <span class="ident">RateLimitError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class RateLimitError(XyphosError):
+    &#34;&#34;&#34;⏰ Raised when API rate limits are exceeded&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>⏰ Raised when API rate limits are exceeded</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.RetryConfig"><code class="flex name class">
+<span>class <span class="ident">RetryConfig</span></span>
+<span>(</span><span>max_retries: int = 3, initial_wait: float = 0.1, max_wait: float = 2.0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@dataclass
+class RetryConfig:
+    &#34;&#34;&#34;🔄 Configuration for retry behavior&#34;&#34;&#34;
+    max_retries: int = 3
+    initial_wait: float = 0.1
+    max_wait: float = 2.0</code></pre>
+</details>
+<div class="desc"><p>🔄 Configuration for retry behavior</p></div>
+<h3>Class variables</h3>
+<dl>
+<dt id="xyphos_client.RetryConfig.initial_wait"><code class="name">var <span class="ident">initial_wait</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.RetryConfig.max_retries"><code class="name">var <span class="ident">max_retries</span> : int</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.RetryConfig.max_wait"><code class="name">var <span class="ident">max_wait</span> : float</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+<dt id="xyphos_client.ServerError"><code class="flex name class">
+<span>class <span class="ident">ServerError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ServerError(XyphosError):
+    &#34;&#34;&#34;🔥 Raised when the server encounters an internal error&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>🔥 Raised when the server encounters an internal error</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.ValidationError"><code class="flex name class">
+<span>class <span class="ident">ValidationError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ValidationError(XyphosError):
+    &#34;&#34;&#34;✅ Raised when data validation fails&#34;&#34;&#34;
+    pass </code></pre>
+</details>
+<div class="desc"><p>✅ Raised when data validation fails</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.XyphosError" href="exceptions.html#xyphos_client.exceptions.XyphosError">XyphosError</a></li>
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="xyphos_client.XyphosClient"><code class="flex name class">
+<span>class <span class="ident">XyphosClient</span></span>
+<span>(</span><span>base_url: str,<br>client_id: str,<br>client_secret: str,<br>timeout: int = 30,<br>retry_config: <a title="xyphos_client.client.RetryConfig" href="client.html#xyphos_client.client.RetryConfig">RetryConfig</a> | None = None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class XyphosClient:
+    &#34;&#34;&#34;🔐 Client for interacting with Xyphos KMS&#34;&#34;&#34;
+
+    def __init__(self, base_url: str, client_id: str, client_secret: str,
+                 timeout: int = 30, retry_config: Optional[RetryConfig] = None):
+        &#34;&#34;&#34;Initialize the client with the given configuration&#34;&#34;&#34;
+        self.config = ClientConfig(
+            base_url=base_url,
+            client_id=client_id,
+            client_secret=client_secret,
+            timeout=timeout,
+            retry_config=retry_config or RetryConfig()
+        )
+
+        self._session = requests.Session()
+        retry_strategy = Retry(
+            total=self.config.retry_config.max_retries,
+            backoff_factor=self.config.retry_config.initial_wait,
+            status_forcelist=[500, 502, 503, 504, 429]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self._session.mount(&#34;http://&#34;, adapter)
+        self._session.mount(&#34;https://&#34;, adapter)
+
+        self._token: Optional[str] = None
+        self._token_expiry: Optional[float] = None
+
+    def _ensure_token(self) -&gt; None:
+        &#34;&#34;&#34;🔑 Ensure a valid token is available&#34;&#34;&#34;
+        if self._token and self._token_expiry and time.time() &lt; self._token_expiry:
+            return
+
+        response = self._session.post(
+            f&#34;{self.config.base_url}/api/oauth/token&#34;,
+            json={
+                &#34;client_id&#34;: self.config.client_id,
+                &#34;client_secret&#34;: self.config.client_secret,
+                &#34;grant_type&#34;: &#34;client_credentials&#34;
+            },
+            timeout=self.config.timeout
+        )
+
+        if response.status_code == 401:
+            raise AuthenticationError(&#34;Invalid credentials&#34;)
+        elif response.status_code != 200:
+            raise ServerError(f&#34;Failed to obtain token: {response.status_code}&#34;)
+
+        data = response.json()
+        self._token = data[&#34;access_token&#34;]
+        self._token_expiry = time.time() + data[&#34;expires_in&#34;]
+
+    def _request(self, method: str, path: str, **kwargs) -&gt; Dict[str, Any]:
+        &#34;&#34;&#34;🌐 Make an authenticated request to the API&#34;&#34;&#34;
+        self._ensure_token()
+
+        headers = {
+            &#34;Authorization&#34;: f&#34;Bearer {self._token}&#34;,
+            &#34;Content-Type&#34;: &#34;application/json&#34;,
+        }
+
+        if &#34;headers&#34; in kwargs:
+            headers.update(kwargs.pop(&#34;headers&#34;))
+
+        response = self._session.request(
+            method,
+            f&#34;{self.config.base_url}/api{path}&#34;,
+            headers=headers,
+            timeout=self.config.timeout,
+            **kwargs
+        )
+
+        if response.status_code == 401:
+            self._token = None
+            raise AuthenticationError(&#34;Authentication failed&#34;)
+        elif response.status_code == 403:
+            raise PermissionError(&#34;Permission denied&#34;)
+        elif response.status_code == 404:
+            raise NotFoundError(&#34;Resource not found&#34;)
+        elif response.status_code == 400:
+            raise InvalidInputError(response.json().get(&#34;message&#34;, &#34;Invalid input&#34;))
+        elif response.status_code == 429:
+            raise RateLimitError(&#34;Rate limit exceeded&#34;)
+        elif response.status_code &gt;= 500:
+            raise ServerError(f&#34;Server error: {response.status_code}&#34;)
+
+        return response.json()
+
+    # 📦 Project Operations
+    def create_project(self, name: str, description: str) -&gt; Project:
+        &#34;&#34;&#34;Create a new project&#34;&#34;&#34;
+        data = self._request(&#34;POST&#34;, &#34;/projects&#34;, json={
+            &#34;name&#34;: name,
+            &#34;description&#34;: description
+        })
+        return Project.from_dict(data)
+
+    def list_projects(self) -&gt; List[Project]:
+        &#34;&#34;&#34;List all projects&#34;&#34;&#34;
+        data = self._request(&#34;GET&#34;, &#34;/projects&#34;)
+        return [Project.from_dict(item) for item in data]
+
+    def get_project(self, project_id: str) -&gt; Project:
+        &#34;&#34;&#34;Get a project by ID&#34;&#34;&#34;
+        data = self._request(&#34;GET&#34;, f&#34;/projects/{project_id}&#34;)
+        return Project.from_dict(data)
+
+    # 💍 KeyRing Operations
+    def create_keyring(self, project_id: str, location_id: str, name: str) -&gt; KeyRing:
+        &#34;&#34;&#34;Create a new keyring&#34;&#34;&#34;
+        data = self._request(
+            &#34;POST&#34;,
+            f&#34;/projects/{project_id}/locations/{location_id}/keyrings&#34;,
+            json={&#34;name&#34;: name}
+        )
+        return KeyRing.from_dict(data)
+
+    def list_keyrings(self, project_id: str, location_id: str) -&gt; List[KeyRing]:
+        &#34;&#34;&#34;List all keyrings in a location&#34;&#34;&#34;
+        data = self._request(&#34;GET&#34;, f&#34;/projects/{project_id}/locations/{location_id}/keyrings&#34;)
+        return [KeyRing.from_dict(item) for item in data]
+
+    def get_keyring(self, project_id: str, location_id: str, keyring_id: str) -&gt; KeyRing:
+        &#34;&#34;&#34;Get a keyring by ID&#34;&#34;&#34;
+        data = self._request(
+            &#34;GET&#34;,
+            f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}&#34;
+        )
+        return KeyRing.from_dict(data)
+
+    # 🔑 CryptoKey Operations
+    def create_crypto_key(
+            self, project_id: str, location_id: str, keyring_id: str,
+            name: str, algorithm: str, purpose: str, rotation_period: int
+    ) -&gt; CryptoKey:
+        &#34;&#34;&#34;Create a new crypto key&#34;&#34;&#34;
+        data = self._request(
+            &#34;POST&#34;,
+            f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys&#34;,
+            json={
+                &#34;name&#34;: name,
+                &#34;algorithm&#34;: algorithm,
+                &#34;purpose&#34;: purpose,
+                &#34;rotation_period&#34;: rotation_period
+            }
+        )
+        return CryptoKey.from_dict(data)
+
+    def list_crypto_keys(
+            self, project_id: str, location_id: str, keyring_id: str
+    ) -&gt; List[CryptoKey]:
+        &#34;&#34;&#34;List all crypto keys in a keyring&#34;&#34;&#34;
+        data = self._request(
+            &#34;GET&#34;,
+            f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys&#34;
+        )
+        return [CryptoKey.from_dict(item) for item in data]
+
+    def get_crypto_key(
+            self, project_id: str, location_id: str, keyring_id: str, key_id: str
+    ) -&gt; CryptoKey:
+        &#34;&#34;&#34;Get a crypto key by ID&#34;&#34;&#34;
+        data = self._request(
+            &#34;GET&#34;,
+            f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}&#34;
+        )
+        return CryptoKey.from_dict(data)
+
+    def rotate_crypto_key(
+            self, project_id: str, location_id: str, keyring_id: str, key_id: str
+    ) -&gt; CryptoKey:
+        &#34;&#34;&#34;Rotate a crypto key&#34;&#34;&#34;
+        data = self._request(
+            &#34;POST&#34;,
+            f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:rotate&#34;
+        )
+        return CryptoKey.from_dict(data)
+
+    # 🔒 Cryptographic Operations
+    def encrypt(
+            self, project_id: str, location_id: str, keyring_id: str,
+            key_id: str, plaintext: str
+    ) -&gt; Dict[str, str]:
+        &#34;&#34;&#34;Encrypt data using a crypto key&#34;&#34;&#34;
+        data = self._request(
+            &#34;POST&#34;,
+            f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:encrypt&#34;,
+            json={&#34;plaintext&#34;: base64.b64encode(plaintext.encode()).decode()}
+        )
+        return {
+            &#34;ciphertext&#34;: data[&#34;ciphertext&#34;],
+            &#34;key_version&#34;: data[&#34;key_version&#34;]
+        }
+
+    def decrypt(
+            self, project_id: str, location_id: str, keyring_id: str,
+            key_id: str, ciphertext: str
+    ) -&gt; Dict[str, str]:
+        &#34;&#34;&#34;Decrypt data using a crypto key&#34;&#34;&#34;
+        data = self._request(
+            &#34;POST&#34;,
+            f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:decrypt&#34;,
+            json={&#34;ciphertext&#34;: ciphertext}
+        )
+        return {
+            &#34;plaintext&#34;: base64.b64decode(data[&#34;plaintext&#34;]).decode()
+        }</code></pre>
+</details>
+<div class="desc"><p>🔐 Client for interacting with Xyphos KMS</p>
+<p>Initialize the client with the given configuration</p></div>
+<h3>Methods</h3>
+<dl>
+<dt id="xyphos_client.XyphosClient.create_crypto_key"><code class="name flex">
+<span>def <span class="ident">create_crypto_key</span></span>(<span>self,<br>project_id: str,<br>location_id: str,<br>keyring_id: str,<br>name: str,<br>algorithm: str,<br>purpose: str,<br>rotation_period: int) ‑> <a title="xyphos_client.client.CryptoKey" href="client.html#xyphos_client.client.CryptoKey">CryptoKey</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_crypto_key(
+        self, project_id: str, location_id: str, keyring_id: str,
+        name: str, algorithm: str, purpose: str, rotation_period: int
+) -&gt; CryptoKey:
+    &#34;&#34;&#34;Create a new crypto key&#34;&#34;&#34;
+    data = self._request(
+        &#34;POST&#34;,
+        f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys&#34;,
+        json={
+            &#34;name&#34;: name,
+            &#34;algorithm&#34;: algorithm,
+            &#34;purpose&#34;: purpose,
+            &#34;rotation_period&#34;: rotation_period
+        }
+    )
+    return CryptoKey.from_dict(data)</code></pre>
+</details>
+<div class="desc"><p>Create a new crypto key</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.create_keyring"><code class="name flex">
+<span>def <span class="ident">create_keyring</span></span>(<span>self, project_id: str, location_id: str, name: str) ‑> <a title="xyphos_client.client.KeyRing" href="client.html#xyphos_client.client.KeyRing">KeyRing</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_keyring(self, project_id: str, location_id: str, name: str) -&gt; KeyRing:
+    &#34;&#34;&#34;Create a new keyring&#34;&#34;&#34;
+    data = self._request(
+        &#34;POST&#34;,
+        f&#34;/projects/{project_id}/locations/{location_id}/keyrings&#34;,
+        json={&#34;name&#34;: name}
+    )
+    return KeyRing.from_dict(data)</code></pre>
+</details>
+<div class="desc"><p>Create a new keyring</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.create_project"><code class="name flex">
+<span>def <span class="ident">create_project</span></span>(<span>self, name: str, description: str) ‑> <a title="xyphos_client.client.Project" href="client.html#xyphos_client.client.Project">Project</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_project(self, name: str, description: str) -&gt; Project:
+    &#34;&#34;&#34;Create a new project&#34;&#34;&#34;
+    data = self._request(&#34;POST&#34;, &#34;/projects&#34;, json={
+        &#34;name&#34;: name,
+        &#34;description&#34;: description
+    })
+    return Project.from_dict(data)</code></pre>
+</details>
+<div class="desc"><p>Create a new project</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.decrypt"><code class="name flex">
+<span>def <span class="ident">decrypt</span></span>(<span>self,<br>project_id: str,<br>location_id: str,<br>keyring_id: str,<br>key_id: str,<br>ciphertext: str) ‑> Dict[str, str]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def decrypt(
+        self, project_id: str, location_id: str, keyring_id: str,
+        key_id: str, ciphertext: str
+) -&gt; Dict[str, str]:
+    &#34;&#34;&#34;Decrypt data using a crypto key&#34;&#34;&#34;
+    data = self._request(
+        &#34;POST&#34;,
+        f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:decrypt&#34;,
+        json={&#34;ciphertext&#34;: ciphertext}
+    )
+    return {
+        &#34;plaintext&#34;: base64.b64decode(data[&#34;plaintext&#34;]).decode()
+    }</code></pre>
+</details>
+<div class="desc"><p>Decrypt data using a crypto key</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.encrypt"><code class="name flex">
+<span>def <span class="ident">encrypt</span></span>(<span>self, project_id: str, location_id: str, keyring_id: str, key_id: str, plaintext: str) ‑> Dict[str, str]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def encrypt(
+        self, project_id: str, location_id: str, keyring_id: str,
+        key_id: str, plaintext: str
+) -&gt; Dict[str, str]:
+    &#34;&#34;&#34;Encrypt data using a crypto key&#34;&#34;&#34;
+    data = self._request(
+        &#34;POST&#34;,
+        f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:encrypt&#34;,
+        json={&#34;plaintext&#34;: base64.b64encode(plaintext.encode()).decode()}
+    )
+    return {
+        &#34;ciphertext&#34;: data[&#34;ciphertext&#34;],
+        &#34;key_version&#34;: data[&#34;key_version&#34;]
+    }</code></pre>
+</details>
+<div class="desc"><p>Encrypt data using a crypto key</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.get_crypto_key"><code class="name flex">
+<span>def <span class="ident">get_crypto_key</span></span>(<span>self, project_id: str, location_id: str, keyring_id: str, key_id: str) ‑> <a title="xyphos_client.client.CryptoKey" href="client.html#xyphos_client.client.CryptoKey">CryptoKey</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_crypto_key(
+        self, project_id: str, location_id: str, keyring_id: str, key_id: str
+) -&gt; CryptoKey:
+    &#34;&#34;&#34;Get a crypto key by ID&#34;&#34;&#34;
+    data = self._request(
+        &#34;GET&#34;,
+        f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}&#34;
+    )
+    return CryptoKey.from_dict(data)</code></pre>
+</details>
+<div class="desc"><p>Get a crypto key by ID</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.get_keyring"><code class="name flex">
+<span>def <span class="ident">get_keyring</span></span>(<span>self, project_id: str, location_id: str, keyring_id: str) ‑> <a title="xyphos_client.client.KeyRing" href="client.html#xyphos_client.client.KeyRing">KeyRing</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_keyring(self, project_id: str, location_id: str, keyring_id: str) -&gt; KeyRing:
+    &#34;&#34;&#34;Get a keyring by ID&#34;&#34;&#34;
+    data = self._request(
+        &#34;GET&#34;,
+        f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}&#34;
+    )
+    return KeyRing.from_dict(data)</code></pre>
+</details>
+<div class="desc"><p>Get a keyring by ID</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.get_project"><code class="name flex">
+<span>def <span class="ident">get_project</span></span>(<span>self, project_id: str) ‑> <a title="xyphos_client.client.Project" href="client.html#xyphos_client.client.Project">Project</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_project(self, project_id: str) -&gt; Project:
+    &#34;&#34;&#34;Get a project by ID&#34;&#34;&#34;
+    data = self._request(&#34;GET&#34;, f&#34;/projects/{project_id}&#34;)
+    return Project.from_dict(data)</code></pre>
+</details>
+<div class="desc"><p>Get a project by ID</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.list_crypto_keys"><code class="name flex">
+<span>def <span class="ident">list_crypto_keys</span></span>(<span>self, project_id: str, location_id: str, keyring_id: str) ‑> List[<a title="xyphos_client.client.CryptoKey" href="client.html#xyphos_client.client.CryptoKey">CryptoKey</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_crypto_keys(
+        self, project_id: str, location_id: str, keyring_id: str
+) -&gt; List[CryptoKey]:
+    &#34;&#34;&#34;List all crypto keys in a keyring&#34;&#34;&#34;
+    data = self._request(
+        &#34;GET&#34;,
+        f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys&#34;
+    )
+    return [CryptoKey.from_dict(item) for item in data]</code></pre>
+</details>
+<div class="desc"><p>List all crypto keys in a keyring</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.list_keyrings"><code class="name flex">
+<span>def <span class="ident">list_keyrings</span></span>(<span>self, project_id: str, location_id: str) ‑> List[<a title="xyphos_client.client.KeyRing" href="client.html#xyphos_client.client.KeyRing">KeyRing</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_keyrings(self, project_id: str, location_id: str) -&gt; List[KeyRing]:
+    &#34;&#34;&#34;List all keyrings in a location&#34;&#34;&#34;
+    data = self._request(&#34;GET&#34;, f&#34;/projects/{project_id}/locations/{location_id}/keyrings&#34;)
+    return [KeyRing.from_dict(item) for item in data]</code></pre>
+</details>
+<div class="desc"><p>List all keyrings in a location</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.list_projects"><code class="name flex">
+<span>def <span class="ident">list_projects</span></span>(<span>self) ‑> List[<a title="xyphos_client.client.Project" href="client.html#xyphos_client.client.Project">Project</a>]</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_projects(self) -&gt; List[Project]:
+    &#34;&#34;&#34;List all projects&#34;&#34;&#34;
+    data = self._request(&#34;GET&#34;, &#34;/projects&#34;)
+    return [Project.from_dict(item) for item in data]</code></pre>
+</details>
+<div class="desc"><p>List all projects</p></div>
+</dd>
+<dt id="xyphos_client.XyphosClient.rotate_crypto_key"><code class="name flex">
+<span>def <span class="ident">rotate_crypto_key</span></span>(<span>self, project_id: str, location_id: str, keyring_id: str, key_id: str) ‑> <a title="xyphos_client.client.CryptoKey" href="client.html#xyphos_client.client.CryptoKey">CryptoKey</a></span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def rotate_crypto_key(
+        self, project_id: str, location_id: str, keyring_id: str, key_id: str
+) -&gt; CryptoKey:
+    &#34;&#34;&#34;Rotate a crypto key&#34;&#34;&#34;
+    data = self._request(
+        &#34;POST&#34;,
+        f&#34;/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:rotate&#34;
+    )
+    return CryptoKey.from_dict(data)</code></pre>
+</details>
+<div class="desc"><p>Rotate a crypto key</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="xyphos_client.XyphosError"><code class="flex name class">
+<span>class <span class="ident">XyphosError</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class XyphosError(Exception):
+    &#34;&#34;&#34;🚨 Base exception for all Xyphos errors&#34;&#34;&#34;
+    pass</code></pre>
+</details>
+<div class="desc"><p>🚨 Base exception for all Xyphos errors</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="xyphos_client.exceptions.AuthenticationError" href="exceptions.html#xyphos_client.exceptions.AuthenticationError">AuthenticationError</a></li>
+<li><a title="xyphos_client.exceptions.ConfigurationError" href="exceptions.html#xyphos_client.exceptions.ConfigurationError">ConfigurationError</a></li>
+<li><a title="xyphos_client.exceptions.InvalidInputError" href="exceptions.html#xyphos_client.exceptions.InvalidInputError">InvalidInputError</a></li>
+<li><a title="xyphos_client.exceptions.NetworkError" href="exceptions.html#xyphos_client.exceptions.NetworkError">NetworkError</a></li>
+<li><a title="xyphos_client.exceptions.NotFoundError" href="exceptions.html#xyphos_client.exceptions.NotFoundError">NotFoundError</a></li>
+<li><a title="xyphos_client.exceptions.PermissionError" href="exceptions.html#xyphos_client.exceptions.PermissionError">PermissionError</a></li>
+<li><a title="xyphos_client.exceptions.RateLimitError" href="exceptions.html#xyphos_client.exceptions.RateLimitError">RateLimitError</a></li>
+<li><a title="xyphos_client.exceptions.ServerError" href="exceptions.html#xyphos_client.exceptions.ServerError">ServerError</a></li>
+<li><a title="xyphos_client.exceptions.ValidationError" href="exceptions.html#xyphos_client.exceptions.ValidationError">ValidationError</a></li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="xyphos_client.client" href="client.html">xyphos_client.client</a></code></li>
+<li><code><a title="xyphos_client.exceptions" href="exceptions.html">xyphos_client.exceptions</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="xyphos_client.AuthenticationError" href="#xyphos_client.AuthenticationError">AuthenticationError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.ClientConfig" href="#xyphos_client.ClientConfig">ClientConfig</a></code></h4>
+<ul class="">
+<li><code><a title="xyphos_client.ClientConfig.base_url" href="#xyphos_client.ClientConfig.base_url">base_url</a></code></li>
+<li><code><a title="xyphos_client.ClientConfig.client_id" href="#xyphos_client.ClientConfig.client_id">client_id</a></code></li>
+<li><code><a title="xyphos_client.ClientConfig.client_secret" href="#xyphos_client.ClientConfig.client_secret">client_secret</a></code></li>
+<li><code><a title="xyphos_client.ClientConfig.retry_config" href="#xyphos_client.ClientConfig.retry_config">retry_config</a></code></li>
+<li><code><a title="xyphos_client.ClientConfig.timeout" href="#xyphos_client.ClientConfig.timeout">timeout</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xyphos_client.ConfigurationError" href="#xyphos_client.ConfigurationError">ConfigurationError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.CryptoKey" href="#xyphos_client.CryptoKey">CryptoKey</a></code></h4>
+<ul class="two-column">
+<li><code><a title="xyphos_client.CryptoKey.algorithm" href="#xyphos_client.CryptoKey.algorithm">algorithm</a></code></li>
+<li><code><a title="xyphos_client.CryptoKey.created_at" href="#xyphos_client.CryptoKey.created_at">created_at</a></code></li>
+<li><code><a title="xyphos_client.CryptoKey.from_dict" href="#xyphos_client.CryptoKey.from_dict">from_dict</a></code></li>
+<li><code><a title="xyphos_client.CryptoKey.id" href="#xyphos_client.CryptoKey.id">id</a></code></li>
+<li><code><a title="xyphos_client.CryptoKey.name" href="#xyphos_client.CryptoKey.name">name</a></code></li>
+<li><code><a title="xyphos_client.CryptoKey.next_rotation" href="#xyphos_client.CryptoKey.next_rotation">next_rotation</a></code></li>
+<li><code><a title="xyphos_client.CryptoKey.purpose" href="#xyphos_client.CryptoKey.purpose">purpose</a></code></li>
+<li><code><a title="xyphos_client.CryptoKey.rotation_period" href="#xyphos_client.CryptoKey.rotation_period">rotation_period</a></code></li>
+<li><code><a title="xyphos_client.CryptoKey.version" href="#xyphos_client.CryptoKey.version">version</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xyphos_client.InvalidInputError" href="#xyphos_client.InvalidInputError">InvalidInputError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.KeyRing" href="#xyphos_client.KeyRing">KeyRing</a></code></h4>
+<ul class="">
+<li><code><a title="xyphos_client.KeyRing.created_at" href="#xyphos_client.KeyRing.created_at">created_at</a></code></li>
+<li><code><a title="xyphos_client.KeyRing.from_dict" href="#xyphos_client.KeyRing.from_dict">from_dict</a></code></li>
+<li><code><a title="xyphos_client.KeyRing.id" href="#xyphos_client.KeyRing.id">id</a></code></li>
+<li><code><a title="xyphos_client.KeyRing.name" href="#xyphos_client.KeyRing.name">name</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xyphos_client.Location" href="#xyphos_client.Location">Location</a></code></h4>
+<ul class="">
+<li><code><a title="xyphos_client.Location.created_at" href="#xyphos_client.Location.created_at">created_at</a></code></li>
+<li><code><a title="xyphos_client.Location.from_dict" href="#xyphos_client.Location.from_dict">from_dict</a></code></li>
+<li><code><a title="xyphos_client.Location.id" href="#xyphos_client.Location.id">id</a></code></li>
+<li><code><a title="xyphos_client.Location.name" href="#xyphos_client.Location.name">name</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xyphos_client.NetworkError" href="#xyphos_client.NetworkError">NetworkError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.NotFoundError" href="#xyphos_client.NotFoundError">NotFoundError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.PermissionError" href="#xyphos_client.PermissionError">PermissionError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.Project" href="#xyphos_client.Project">Project</a></code></h4>
+<ul class="">
+<li><code><a title="xyphos_client.Project.created_at" href="#xyphos_client.Project.created_at">created_at</a></code></li>
+<li><code><a title="xyphos_client.Project.description" href="#xyphos_client.Project.description">description</a></code></li>
+<li><code><a title="xyphos_client.Project.from_dict" href="#xyphos_client.Project.from_dict">from_dict</a></code></li>
+<li><code><a title="xyphos_client.Project.id" href="#xyphos_client.Project.id">id</a></code></li>
+<li><code><a title="xyphos_client.Project.name" href="#xyphos_client.Project.name">name</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xyphos_client.RateLimitError" href="#xyphos_client.RateLimitError">RateLimitError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.RetryConfig" href="#xyphos_client.RetryConfig">RetryConfig</a></code></h4>
+<ul class="">
+<li><code><a title="xyphos_client.RetryConfig.initial_wait" href="#xyphos_client.RetryConfig.initial_wait">initial_wait</a></code></li>
+<li><code><a title="xyphos_client.RetryConfig.max_retries" href="#xyphos_client.RetryConfig.max_retries">max_retries</a></code></li>
+<li><code><a title="xyphos_client.RetryConfig.max_wait" href="#xyphos_client.RetryConfig.max_wait">max_wait</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xyphos_client.ServerError" href="#xyphos_client.ServerError">ServerError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.ValidationError" href="#xyphos_client.ValidationError">ValidationError</a></code></h4>
+</li>
+<li>
+<h4><code><a title="xyphos_client.XyphosClient" href="#xyphos_client.XyphosClient">XyphosClient</a></code></h4>
+<ul class="two-column">
+<li><code><a title="xyphos_client.XyphosClient.create_crypto_key" href="#xyphos_client.XyphosClient.create_crypto_key">create_crypto_key</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.create_keyring" href="#xyphos_client.XyphosClient.create_keyring">create_keyring</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.create_project" href="#xyphos_client.XyphosClient.create_project">create_project</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.decrypt" href="#xyphos_client.XyphosClient.decrypt">decrypt</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.encrypt" href="#xyphos_client.XyphosClient.encrypt">encrypt</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.get_crypto_key" href="#xyphos_client.XyphosClient.get_crypto_key">get_crypto_key</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.get_keyring" href="#xyphos_client.XyphosClient.get_keyring">get_keyring</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.get_project" href="#xyphos_client.XyphosClient.get_project">get_project</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.list_crypto_keys" href="#xyphos_client.XyphosClient.list_crypto_keys">list_crypto_keys</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.list_keyrings" href="#xyphos_client.XyphosClient.list_keyrings">list_keyrings</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.list_projects" href="#xyphos_client.XyphosClient.list_projects">list_projects</a></code></li>
+<li><code><a title="xyphos_client.XyphosClient.rotate_crypto_key" href="#xyphos_client.XyphosClient.rotate_crypto_key">rotate_crypto_key</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="xyphos_client.XyphosError" href="#xyphos_client.XyphosError">XyphosError</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.5</a>.</p>
+</footer>
+</body>
+</html>

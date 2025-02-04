@@ -1,0 +1,10 @@
+README.md
+setup.py
+xyphos_client/__init__.py
+xyphos_client/client.py
+xyphos_client/exceptions.py
+xyphos_client.egg-info/PKG-INFO
+xyphos_client.egg-info/SOURCES.txt
+xyphos_client.egg-info/dependency_links.txt
+xyphos_client.egg-info/requires.txt
+xyphos_client.egg-info/top_level.txt
