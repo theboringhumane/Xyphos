@@ -1,6 +1,6 @@
 // 🔐 Xyphos API Client
 
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // 📝 API Types
 export interface Project {
@@ -54,8 +54,8 @@ export class XyphosClient {
 
     // Add response interceptor for error handling
     this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
+      (response: AxiosResponse) => response,
+      (error: AxiosError) => {
         if (error.response?.status === 401) {
           // Handle unauthorized access
           window.location.href = '/auth/login';
@@ -152,6 +152,7 @@ export class XyphosClient {
     return data;
   }
 
+  // 🔄 Key Rotation
   async rotateCryptoKey(
     projectId: string,
     locationId: string,
@@ -159,26 +160,27 @@ export class XyphosClient {
     keyId: string
   ): Promise<CryptoKey> {
     const { data } = await this.client.post(
-      `/projects/${projectId}/locations/${locationId}/keyrings/${keyRingId}/keys/${keyId}:rotate`
+      `/projects/${projectId}/locations/${locationId}/keyrings/${keyRingId}/keys/${keyId}/rotate`
     );
     return data;
   }
 
-  // 🔒 Cryptographic Operations
+  // 🔒 Encryption
   async encrypt(
     projectId: string,
     locationId: string,
     keyRingId: string,
     keyId: string,
     plaintext: string
-  ): Promise<{ ciphertext: string; keyVersion: string }> {
+  ): Promise<{ ciphertext: string }> {
     const { data } = await this.client.post(
-      `/projects/${projectId}/locations/${locationId}/keyrings/${keyRingId}/keys/${keyId}:encrypt`,
-      { plaintext: btoa(plaintext) }
+      `/projects/${projectId}/locations/${locationId}/keyrings/${keyRingId}/keys/${keyId}/encrypt`,
+      { plaintext }
     );
     return data;
   }
 
+  // 🔓 Decryption
   async decrypt(
     projectId: string,
     locationId: string,
@@ -187,9 +189,9 @@ export class XyphosClient {
     ciphertext: string
   ): Promise<{ plaintext: string }> {
     const { data } = await this.client.post(
-      `/projects/${projectId}/locations/${locationId}/keyrings/${keyRingId}/keys/${keyId}:decrypt`,
+      `/projects/${projectId}/locations/${locationId}/keyrings/${keyRingId}/keys/${keyId}/decrypt`,
       { ciphertext }
     );
-    return { plaintext: atob(data.plaintext) };
+    return data;
   }
 } 
