@@ -227,7 +227,7 @@ package api
 //	@Failure		401			{object}	ErrorResponse
 //	@Failure		404			{object}	ErrorResponse
 //	@Security		BearerAuth
-//	@Router			/projects/{projectId}/locations/{locationId}/keyrings/{keyringId}/keys/{keyId}:rotate [post]
+//	@Router			/projects/{projectId}/locations/{locationId}/keyrings/{keyringId}/keys/{keyId}/rotate [post]
 
 //	@Summary		Encrypt data
 //	@Description	Encrypt data using a crypto key
@@ -244,7 +244,7 @@ package api
 //	@Failure		401			{object}	ErrorResponse
 //	@Failure		404			{object}	ErrorResponse
 //	@Security		BearerAuth
-//	@Router			/projects/{projectId}/locations/{locationId}/keyrings/{keyringId}/keys/{keyId}:encrypt [post]
+//	@Router			/projects/{projectId}/locations/{locationId}/keyrings/{keyringId}/keys/{keyId}/encrypt [post]
 
 //	@Summary		Decrypt data
 //	@Description	Decrypt data using a crypto key
@@ -261,7 +261,7 @@ package api
 //	@Failure		401			{object}	ErrorResponse
 //	@Failure		404			{object}	ErrorResponse
 //	@Security		BearerAuth
-//	@Router			/projects/{projectId}/locations/{locationId}/keyrings/{keyringId}/keys/{keyId}:decrypt [post]
+//	@Router			/projects/{projectId}/locations/{locationId}/keyrings/{keyringId}/keys/{keyId}/decrypt [post]
 
 // Client Configuration Operations
 

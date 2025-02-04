@@ -81,7 +81,7 @@ el.replaceWith(d);
 </dd>
 <dt id="xyphos_client.ClientConfig"><code class="flex name class">
 <span>class <span class="ident">ClientConfig</span></span>
-<span>(</span><span>base_url: str,<br>client_id: str,<br>client_secret: str,<br>timeout: int = 30,<br>retry_config: <a title="xyphos_client.client.RetryConfig" href="client.html#xyphos_client.client.RetryConfig">RetryConfig</a> = &lt;factory&gt;)</span>
+<span>(</span><span>base_url: str,<br>client_config_id: str,<br>client_config_secret: str,<br>timeout: int = 30,<br>retry_config: <a title="xyphos_client.client.RetryConfig" href="client.html#xyphos_client.client.RetryConfig">RetryConfig</a> = &lt;factory&gt;,<br>private_key: str | None = None)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -92,10 +92,11 @@ el.replaceWith(d);
 class ClientConfig:
     &#34;&#34;&#34;🔧 Configuration for the Xyphos client&#34;&#34;&#34;
     base_url: str
-    client_id: str
-    client_secret: str
+    client_config_id: str  # 🔑 Client config ID from the KMS service
+    client_config_secret: str  # 🔐 Client config secret from the KMS service
     timeout: int = 30
-    retry_config: RetryConfig = field(default_factory=RetryConfig)</code></pre>
+    retry_config: RetryConfig = field(default_factory=RetryConfig)
+    private_key: Optional[str] = None  # 🔐 RSA private key in PEM format</code></pre>
 </details>
 <div class="desc"><p>🔧 Configuration for the Xyphos client</p></div>
 <h3>Class variables</h3>
@@ -104,11 +105,15 @@ class ClientConfig:
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="xyphos_client.ClientConfig.client_id"><code class="name">var <span class="ident">client_id</span> : str</code></dt>
+<dt id="xyphos_client.ClientConfig.client_config_id"><code class="name">var <span class="ident">client_config_id</span> : str</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="xyphos_client.ClientConfig.client_secret"><code class="name">var <span class="ident">client_secret</span> : str</code></dt>
+<dt id="xyphos_client.ClientConfig.client_config_secret"><code class="name">var <span class="ident">client_config_secret</span> : str</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="xyphos_client.ClientConfig.private_key"><code class="name">var <span class="ident">private_key</span> : str | None</code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -561,7 +566,7 @@ class RetryConfig:
 </dd>
 <dt id="xyphos_client.XyphosClient"><code class="flex name class">
 <span>class <span class="ident">XyphosClient</span></span>
-<span>(</span><span>base_url: str,<br>client_id: str,<br>client_secret: str,<br>timeout: int = 30,<br>retry_config: <a title="xyphos_client.client.RetryConfig" href="client.html#xyphos_client.client.RetryConfig">RetryConfig</a> | None = None)</span>
+<span>(</span><span>config: <a title="xyphos_client.client.ClientConfig" href="client.html#xyphos_client.client.ClientConfig">ClientConfig</a>)</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -569,42 +574,80 @@ class RetryConfig:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class XyphosClient:
-    &#34;&#34;&#34;🔐 Client for interacting with Xyphos KMS&#34;&#34;&#34;
+    &#34;&#34;&#34;🌐 Client for interacting with Xyphos KMS&#34;&#34;&#34;
+    def __init__(self, config: ClientConfig):
+        self.config = config
+        self.session = self._create_session()
+        self._token: Optional[str] = None
+        self._token_expiry: Optional[datetime] = None
+        self._private_key: Optional[rsa.RSAPrivateKey] = None
+        self._public_key: Optional[rsa.RSAPublicKey] = None
+        if config.private_key:
+            self._init_keys(config.private_key)
 
-    def __init__(self, base_url: str, client_id: str, client_secret: str,
-                 timeout: int = 30, retry_config: Optional[RetryConfig] = None):
-        &#34;&#34;&#34;Initialize the client with the given configuration&#34;&#34;&#34;
-        self.config = ClientConfig(
-            base_url=base_url,
-            client_id=client_id,
-            client_secret=client_secret,
-            timeout=timeout,
-            retry_config=retry_config or RetryConfig()
+    def _init_keys(self, private_key_pem: str) -&gt; None:
+        &#34;&#34;&#34;🔐 Initialize RSA keys from PEM&#34;&#34;&#34;
+        private_key_bytes = private_key_pem.encode(&#39;utf-8&#39;)
+        self._private_key = serialization.load_pem_private_key(
+            private_key_bytes,
+            password=None,
+            backend=default_backend()
+        )
+        self._public_key = self._private_key.public_key()
+
+    def _encrypt_request(self, data: Dict[str, Any]) -&gt; bytes:
+        &#34;&#34;&#34;🔒 Encrypt request data using RSA-OAEP&#34;&#34;&#34;
+        if not self._public_key:
+            raise ValueError(&#34;Client keys not initialized&#34;)
+        
+        json_data = json.dumps(data).encode(&#39;utf-8&#39;)
+        return self._public_key.encrypt(
+            json_data,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
         )
 
-        self._session = requests.Session()
-        retry_strategy = Retry(
+    def _decrypt_response(self, encrypted_data: bytes) -&gt; Dict[str, Any]:
+        &#34;&#34;&#34;🔓 Decrypt response data using RSA-OAEP&#34;&#34;&#34;
+        if not self._private_key:
+            raise ValueError(&#34;Client keys not initialized&#34;)
+        
+        decrypted_data = self._private_key.decrypt(
+            encrypted_data,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return json.loads(decrypted_data.decode(&#39;utf-8&#39;))
+
+    def _create_session(self) -&gt; requests.Session:
+        &#34;&#34;&#34;Create a session with retry configuration&#34;&#34;&#34;
+        session = requests.Session()
+        retry = Retry(
             total=self.config.retry_config.max_retries,
             backoff_factor=self.config.retry_config.initial_wait,
             status_forcelist=[500, 502, 503, 504, 429]
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self._session.mount(&#34;http://&#34;, adapter)
-        self._session.mount(&#34;https://&#34;, adapter)
-
-        self._token: Optional[str] = None
-        self._token_expiry: Optional[float] = None
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount(&#39;http://&#39;, adapter)
+        session.mount(&#39;https://&#39;, adapter)
+        return session
 
     def _ensure_token(self) -&gt; None:
         &#34;&#34;&#34;🔑 Ensure a valid token is available&#34;&#34;&#34;
         if self._token and self._token_expiry and time.time() &lt; self._token_expiry:
             return
 
-        response = self._session.post(
+        response = self.session.post(
             f&#34;{self.config.base_url}/api/oauth/token&#34;,
             json={
-                &#34;client_id&#34;: self.config.client_id,
-                &#34;client_secret&#34;: self.config.client_secret,
+                &#34;client_id&#34;: self.config.client_config_id,
+                &#34;client_secret&#34;: self.config.client_config_secret,
                 &#34;grant_type&#34;: &#34;client_credentials&#34;
             },
             timeout=self.config.timeout
@@ -631,7 +674,14 @@ class RetryConfig:
         if &#34;headers&#34; in kwargs:
             headers.update(kwargs.pop(&#34;headers&#34;))
 
-        response = self._session.request(
+        # Handle request encryption
+        if &#34;json&#34; in kwargs and self._public_key:
+            encrypted_data = self._encrypt_request(kwargs[&#34;json&#34;])
+            kwargs[&#34;data&#34;] = base64.b64encode(encrypted_data).decode(&#39;utf-8&#39;)
+            headers[&#34;X-Request-Encrypted&#34;] = &#34;true&#34;
+            del kwargs[&#34;json&#34;]
+
+        response = self.session.request(
             method,
             f&#34;{self.config.base_url}/api{path}&#34;,
             headers=headers,
@@ -652,6 +702,11 @@ class RetryConfig:
             raise RateLimitError(&#34;Rate limit exceeded&#34;)
         elif response.status_code &gt;= 500:
             raise ServerError(f&#34;Server error: {response.status_code}&#34;)
+
+        # Handle response decryption
+        if response.headers.get(&#34;X-Response-Encrypted&#34;) == &#34;true&#34;:
+            encrypted_data = base64.b64decode(response.content)
+            return self._decrypt_response(encrypted_data)
 
         return response.json()
 
@@ -775,8 +830,7 @@ class RetryConfig:
             &#34;plaintext&#34;: base64.b64decode(data[&#34;plaintext&#34;]).decode()
         }</code></pre>
 </details>
-<div class="desc"><p>🔐 Client for interacting with Xyphos KMS</p>
-<p>Initialize the client with the given configuration</p></div>
+<div class="desc"><p>🌐 Client for interacting with Xyphos KMS</p></div>
 <h3>Methods</h3>
 <dl>
 <dt id="xyphos_client.XyphosClient.create_crypto_key"><code class="name flex">
@@ -1072,8 +1126,9 @@ class RetryConfig:
 <h4><code><a title="xyphos_client.ClientConfig" href="#xyphos_client.ClientConfig">ClientConfig</a></code></h4>
 <ul class="">
 <li><code><a title="xyphos_client.ClientConfig.base_url" href="#xyphos_client.ClientConfig.base_url">base_url</a></code></li>
-<li><code><a title="xyphos_client.ClientConfig.client_id" href="#xyphos_client.ClientConfig.client_id">client_id</a></code></li>
-<li><code><a title="xyphos_client.ClientConfig.client_secret" href="#xyphos_client.ClientConfig.client_secret">client_secret</a></code></li>
+<li><code><a title="xyphos_client.ClientConfig.client_config_id" href="#xyphos_client.ClientConfig.client_config_id">client_config_id</a></code></li>
+<li><code><a title="xyphos_client.ClientConfig.client_config_secret" href="#xyphos_client.ClientConfig.client_config_secret">client_config_secret</a></code></li>
+<li><code><a title="xyphos_client.ClientConfig.private_key" href="#xyphos_client.ClientConfig.private_key">private_key</a></code></li>
 <li><code><a title="xyphos_client.ClientConfig.retry_config" href="#xyphos_client.ClientConfig.retry_config">retry_config</a></code></li>
 <li><code><a title="xyphos_client.ClientConfig.timeout" href="#xyphos_client.ClientConfig.timeout">timeout</a></code></li>
 </ul>

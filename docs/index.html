@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xyphos - Secure Key Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Hero Section -->
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-20">
+        <div class="container mx-auto px-6">
+            <h1 class="text-5xl font-bold mb-4">🔐 Xyphos</h1>
+            <p class="text-xl mb-8">A secure multi-tenant key management system with automatic key rotation</p>
+            <div class="flex space-x-4">
+                <a href="@docs/getting-started.md" class="bg-white text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">Get Started</a>
+                <a href="https://github.com/yourusername/xyphos" class="border border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-600 transition">View on GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">Core Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <i class="fas fa-key text-4xl text-indigo-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2">Hierarchical Key Management</h3>
+                    <p class="text-gray-600">Organize keys in a structured hierarchy with KeyRings, Tenants, and Versions</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <i class="fas fa-sync text-4xl text-indigo-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2">Automatic Key Rotation</h3>
+                    <p class="text-gray-600">Time-based automatic key rotation with configurable crypto periods</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <i class="fas fa-shield-alt text-4xl text-indigo-600 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2">FIPS 140-2 Compliant</h3>
+                    <p class="text-gray-600">Enterprise-grade cryptographic operations following security standards</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section class="bg-gray-50 py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">Documentation</h2>
+            <div class="max-w-3xl mx-auto">
+                <div class="bg-white p-8 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-semibold mb-4">Quick Start</h3>
+                    <pre class="bg-gray-800 text-white p-4 rounded-lg overflow-x-auto">
+go get github.com/yourusername/xyphos
+                    </pre>
+                    <p class="mt-4 text-gray-600">Check out our comprehensive documentation for detailed setup instructions and API reference.</p>
+                    <a href="@docs/getting-started.md" class="inline-block mt-4 text-indigo-600 hover:text-indigo-700">Read Documentation →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <h3 class="text-2xl font-bold">🔐 Xyphos</h3>
+                    <p class="text-gray-400">Secure Key Management Made Simple</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="https://github.com/yourusername/xyphos" class="hover:text-indigo-400"><i class="fab fa-github text-2xl"></i></a>
+                    <a href="https://twitter.com/xyphos" class="hover:text-indigo-400"><i class="fab fa-twitter text-2xl"></i></a>
+                    <a href="https://discord.gg/xyphos" class="hover:text-indigo-400"><i class="fab fa-discord text-2xl"></i></a>
+                </div>
+            </div>
+            <div class="mt-8 text-center text-gray-400">
+                <p>&copy; 2024 Xyphos. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

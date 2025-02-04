@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"lambda-kms/internal/api/services"
-	"lambda-kms/internal/auth"
-	"lambda-kms/internal/store"
+	"xyphos/internal/api/services"
+	"xyphos/internal/auth"
+	"xyphos/internal/store"
 
 	"github.com/gin-gonic/gin"
 )
