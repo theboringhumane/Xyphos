@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"xyphos/internal/models"
 	"xyphos/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // 🧪 TestEncryptionMiddleware_NoEncryption tests the middleware with no encryption
@@ -52,8 +53,10 @@ func TestEncryptionMiddleware_WithEncryption(t *testing.T) {
 	middleware := NewEncryptionMiddleware(securityService)
 
 	// Generate test client config with keys
-	clientConfig, err := securityService.GenerateClientConfig("test-user", "test-client", []string{"encrypt"}, 24*60*60)
-	assert.NoError(t, err)
+	clientConfig, err := securityService.GenerateClientConfig("test-user", "test-client", []string{"write:keys"}, 24*60*60)
+	require.NoError(t, err)
+	require.NotEmpty(t, clientConfig.PublicKey, "Public key should not be empty")
+	require.NotEmpty(t, clientConfig.PrivateKey, "Private key should not be empty")
 
 	// Create test router
 	r := gin.New()
@@ -68,39 +71,44 @@ func TestEncryptionMiddleware_WithEncryption(t *testing.T) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.Header("X-Response-Encrypted", "true")
 		c.JSON(http.StatusOK, gin.H{"received": data["test"]})
 	})
 
-	// Create and encrypt test request
-	testData := map[string]string{"test": "encrypted-data"}
-	encryptedData, err := securityService.EncryptForClient(clientConfig.PublicKey, mustMarshal(t, testData))
-	assert.NoError(t, err)
+	// Create test request payload
+	testPayload := map[string]string{"test": "encrypted-data"}
 
-	// Create test request
+	// Encrypt test payload using client's public key
+	encryptedPayload, err := securityService.EncryptForClient(clientConfig.PublicKey, mustMarshal(t, testPayload))
+	require.NoError(t, err)
+
+	// Base64 encode encrypted payload
+	encodedPayload := base64.StdEncoding.EncodeToString(encryptedPayload)
+
+	// Create test request with base64 encoded encrypted payload
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(base64.StdEncoding.EncodeToString(encryptedData)))
-	req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(encodedPayload))
+	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("X-Request-Encrypted", "true")
 
 	// Test
 	r.ServeHTTP(w, req)
 
 	// Assert
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "true", w.Header().Get("X-Response-Encrypted"))
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "true", w.Header().Get("X-Response-Encrypted"))
 
-	// Decrypt and verify response
-	encryptedResponse, err := base64.StdEncoding.DecodeString(w.Body.String())
-	assert.NoError(t, err)
+	// Base64 decode response
+	decodedResponse, err := base64.StdEncoding.DecodeString(w.Body.String())
+	require.NoError(t, err, "Failed to base64 decode response")
 
-	decryptedData, err := securityService.DecryptFromClient(clientConfig.PrivateKey, encryptedResponse)
-	assert.NoError(t, err)
+	// Decrypt and verify response using client's private key
+	decryptedData, err := securityService.DecryptFromClient(clientConfig.PrivateKey, decodedResponse)
+	require.NoError(t, err)
 
 	var response map[string]string
 	err = json.Unmarshal(decryptedData, &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "encrypted-data", response["received"])
+	require.NoError(t, err)
+	assert.Equal(t, testPayload["test"], response["received"])
 }
 
 // 🧪 TestEncryptionMiddleware_InvalidEncryption tests the middleware with invalid encryption
@@ -110,12 +118,11 @@ func TestEncryptionMiddleware_InvalidEncryption(t *testing.T) {
 	securityService := services.NewClientSecurityService()
 	middleware := NewEncryptionMiddleware(securityService)
 
-	// Create test client config
-	clientConfig := &models.ClientConfig{
-		ID:         "test-id",
-		PublicKey:  "invalid-key",
-		PrivateKey: "invalid-key",
-	}
+	// Generate test client config with keys
+	clientConfig, err := securityService.GenerateClientConfig("test-user", "test-client", []string{"write:keys"}, 24*60*60)
+	require.NoError(t, err)
+	require.NotEmpty(t, clientConfig.PublicKey, "Public key should not be empty")
+	require.NotEmpty(t, clientConfig.PrivateKey, "Private key should not be empty")
 
 	// Create test router
 	r := gin.New()
@@ -128,10 +135,13 @@ func TestEncryptionMiddleware_InvalidEncryption(t *testing.T) {
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
-	// Create test request with invalid encryption
+	// Create invalid payload (not encrypted)
+	invalidPayload := base64.StdEncoding.EncodeToString([]byte("invalid data"))
+
+	// Create test request with invalid payload
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString("invalid-encrypted-data"))
-	req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(invalidPayload))
+	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("X-Request-Encrypted", "true")
 
 	// Test
@@ -139,10 +149,19 @@ func TestEncryptionMiddleware_InvalidEncryption(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	// Base64 decode response
+	decodedResponse, err := base64.StdEncoding.DecodeString(w.Body.String())
+	require.NoError(t, err, "Failed to base64 decode response")
+
+	// Decrypt and verify error response
+	decryptedData, err := securityService.DecryptFromClient(clientConfig.PrivateKey, decodedResponse)
+	require.NoError(t, err)
+
 	var response map[string]string
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Contains(t, response["error"], "invalid encrypted data")
+	err = json.Unmarshal(decryptedData, &response)
+	require.NoError(t, err)
+	assert.Contains(t, response["error"], "failed to decrypt request")
 }
 
 // 🧪 TestEncryptionMiddleware_MissingClientConfig tests the middleware without client config
@@ -162,7 +181,7 @@ func TestEncryptionMiddleware_MissingClientConfig(t *testing.T) {
 	// Create test request
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(`{"test":"data"}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("X-Request-Encrypted", "true")
 
 	// Test
@@ -180,8 +199,8 @@ func TestEncryptionMiddleware_EmptyRequest(t *testing.T) {
 	middleware := NewEncryptionMiddleware(securityService)
 
 	// Generate test client config
-	clientConfig, err := securityService.GenerateClientConfig("test-user", "test-client", []string{"encrypt"}, 24*60*60)
-	assert.NoError(t, err)
+	clientConfig, err := securityService.GenerateClientConfig("test-user", "test-client", []string{"write:keys"}, 24*60*60)
+	require.NoError(t, err)
 
 	// Create test router
 	r := gin.New()
@@ -191,13 +210,22 @@ func TestEncryptionMiddleware_EmptyRequest(t *testing.T) {
 	})
 	r.Use(middleware.HandleEncryption())
 	r.POST("/test", func(c *gin.Context) {
+		body, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+			return
+		}
+		if len(body) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "empty request body"})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"message": "success"})
 	})
 
 	// Create test request with empty body
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/test", nil)
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("X-Request-Encrypted", "true")
 
 	// Test
@@ -205,6 +233,20 @@ func TestEncryptionMiddleware_EmptyRequest(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, "true", w.Header().Get("X-Response-Encrypted"))
+
+	// Base64 decode response
+	decodedResponse, err := base64.StdEncoding.DecodeString(w.Body.String())
+	require.NoError(t, err, "Failed to base64 decode response")
+
+	// Decrypt and verify error response
+	decryptedData, err := securityService.DecryptFromClient(clientConfig.PrivateKey, decodedResponse)
+	require.NoError(t, err)
+
+	var response map[string]string
+	err = json.Unmarshal(decryptedData, &response)
+	require.NoError(t, err)
+	assert.Equal(t, "empty request body", response["error"])
 }
 
 // 🧪 TestEncryptionMiddleware_LargePayload tests the middleware with a large payload
@@ -215,13 +257,13 @@ func TestEncryptionMiddleware_LargePayload(t *testing.T) {
 	middleware := NewEncryptionMiddleware(securityService)
 
 	// Generate test client config
-	clientConfig, err := securityService.GenerateClientConfig("test-user", "test-client", []string{"encrypt"}, 24*60*60)
-	assert.NoError(t, err)
+	clientConfig, err := securityService.GenerateClientConfig("test-user", "test-client", []string{"write:keys"}, 24*60*60)
+	require.NoError(t, err)
 
-	// Create large test data (1MB)
-	largeData := make([]byte, 1024*1024)
-	for i := range largeData {
-		largeData[i] = byte(i % 256)
+	// Create large test payload (1MB)
+	largePayload := make([]byte, 1024*1024)
+	for i := range largePayload {
+		largePayload[i] = byte(i % 256)
 	}
 
 	// Create test router
@@ -232,26 +274,47 @@ func TestEncryptionMiddleware_LargePayload(t *testing.T) {
 	})
 	r.Use(middleware.HandleEncryption())
 	r.POST("/test", func(c *gin.Context) {
-		c.Header("X-Response-Encrypted", "true")
-		c.JSON(http.StatusOK, gin.H{"size": len(largeData)})
+		// Read raw request body
+		body, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
+
+		// Echo back request body in response
+		c.Data(http.StatusOK, "application/octet-stream", body)
 	})
 
-	// Encrypt large data
-	encryptedData, err := securityService.EncryptForClient(clientConfig.PublicKey, largeData)
-	assert.NoError(t, err)
+	// Encrypt large payload using client's public key
+	encryptedPayload, err := securityService.EncryptForClient(clientConfig.PublicKey, largePayload)
+	require.NoError(t, err)
 
-	// Create test request
+	// Base64 encode encrypted large payload
+	encodedPayload := base64.StdEncoding.EncodeToString(encryptedPayload)
+
+	// Create test request with base64 encoded encrypted payload
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(base64.StdEncoding.EncodeToString(encryptedData)))
-	req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(encodedPayload))
+	req.Header.Set("Content-Type", "application/octet-stream")
 	req.Header.Set("X-Request-Encrypted", "true")
 
 	// Test
 	r.ServeHTTP(w, req)
 
 	// Assert
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "true", w.Header().Get("X-Response-Encrypted"))
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Equal(t, "true", w.Header().Get("X-Response-Encrypted"))
+
+	// Base64 decode response
+	decodedResponse, err := base64.StdEncoding.DecodeString(w.Body.String())
+	require.NoError(t, err, "Failed to base64 decode response")
+
+	// Decrypt and verify response using client's private key
+	decryptedData, err := securityService.DecryptFromClient(clientConfig.PrivateKey, decodedResponse)
+	require.NoError(t, err)
+
+	// Verify the decrypted data matches the original payload
+	assert.Equal(t, largePayload, decryptedData)
 }
 
 // 🏃 BenchmarkEncryptionMiddleware_SmallPayload benchmarks encryption with small payload
@@ -285,7 +348,7 @@ func BenchmarkEncryptionMiddleware_SmallPayload(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(encodedData))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Header.Set("X-Request-Encrypted", "true")
 		r.ServeHTTP(w, req)
 	}
@@ -327,17 +390,17 @@ func BenchmarkEncryptionMiddleware_LargePayload(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/test", bytes.NewBufferString(encodedData))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", "application/octet-stream")
 		req.Header.Set("X-Request-Encrypted", "true")
 		r.ServeHTTP(w, req)
 	}
 }
 
-// Helper function for benchmarks
-func mustMarshal(b *testing.B, v interface{}) []byte {
+// 🔧 Helper function for marshaling in tests
+func mustMarshal(t testing.TB, v interface{}) []byte {
 	data, err := json.Marshal(v)
 	if err != nil {
-		b.Fatal(err)
+		t.Fatalf("Failed to marshal data: %v", err)
 	}
 	return data
 }
