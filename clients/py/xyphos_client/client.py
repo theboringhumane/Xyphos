@@ -5,7 +5,11 @@ import time
 import base64
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.backends import default_backend
+import json
 
 from .exceptions import (
     AuthenticationError,
@@ -29,10 +33,29 @@ class RetryConfig:
 class ClientConfig:
     """🔧 Configuration for the Xyphos client"""
     base_url: str
-    client_id: str
-    client_secret: str
+    client_config_id: str  # 🔑 Client config ID from the KMS service
+    client_config_secret: str  # 🔐 Client config secret from the KMS service
     timeout: int = 30
     retry_config: RetryConfig = field(default_factory=RetryConfig)
+    private_key: Optional[str] = None  # 🔐 RSA private key in PEM format
+
+
+@dataclass
+class ClientConfigInfo:
+    """🔐 Client configuration information"""
+    id: str
+    secret: str
+    expires_at: datetime
+    permissions: List[str]
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ClientConfigInfo':
+        return cls(
+            id=data['id'],
+            secret=data['secret'],
+            expires_at=datetime.fromisoformat(data['expiresAt']),
+            permissions=data['permissions']
+        )
 
 
 @dataclass
@@ -112,42 +135,80 @@ class CryptoKey:
 
 
 class XyphosClient:
-    """🔐 Client for interacting with Xyphos KMS"""
+    """🌐 Client for interacting with Xyphos KMS"""
+    def __init__(self, config: ClientConfig):
+        self.config = config
+        self.session = self._create_session()
+        self._token: Optional[str] = None
+        self._token_expiry: Optional[datetime] = None
+        self._private_key: Optional[rsa.RSAPrivateKey] = None
+        self._public_key: Optional[rsa.RSAPublicKey] = None
+        if config.private_key:
+            self._init_keys(config.private_key)
 
-    def __init__(self, base_url: str, client_id: str, client_secret: str,
-                 timeout: int = 30, retry_config: Optional[RetryConfig] = None):
-        """Initialize the client with the given configuration"""
-        self.config = ClientConfig(
-            base_url=base_url,
-            client_id=client_id,
-            client_secret=client_secret,
-            timeout=timeout,
-            retry_config=retry_config or RetryConfig()
+    def _init_keys(self, private_key_pem: str) -> None:
+        """🔐 Initialize RSA keys from PEM"""
+        private_key_bytes = private_key_pem.encode('utf-8')
+        self._private_key = serialization.load_pem_private_key(
+            private_key_bytes,
+            password=None,
+            backend=default_backend()
+        )
+        self._public_key = self._private_key.public_key()
+
+    def _encrypt_request(self, data: Dict[str, Any]) -> bytes:
+        """🔒 Encrypt request data using RSA-OAEP"""
+        if not self._public_key:
+            raise ValueError("Client keys not initialized")
+        
+        json_data = json.dumps(data).encode('utf-8')
+        return self._public_key.encrypt(
+            json_data,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
         )
 
-        self._session = requests.Session()
-        retry_strategy = Retry(
+    def _decrypt_response(self, encrypted_data: bytes) -> Dict[str, Any]:
+        """🔓 Decrypt response data using RSA-OAEP"""
+        if not self._private_key:
+            raise ValueError("Client keys not initialized")
+        
+        decrypted_data = self._private_key.decrypt(
+            encrypted_data,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return json.loads(decrypted_data.decode('utf-8'))
+
+    def _create_session(self) -> requests.Session:
+        """Create a session with retry configuration"""
+        session = requests.Session()
+        retry = Retry(
             total=self.config.retry_config.max_retries,
             backoff_factor=self.config.retry_config.initial_wait,
             status_forcelist=[500, 502, 503, 504, 429]
         )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self._session.mount("http://", adapter)
-        self._session.mount("https://", adapter)
-
-        self._token: Optional[str] = None
-        self._token_expiry: Optional[float] = None
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        return session
 
     def _ensure_token(self) -> None:
         """🔑 Ensure a valid token is available"""
         if self._token and self._token_expiry and time.time() < self._token_expiry:
             return
 
-        response = self._session.post(
+        response = self.session.post(
             f"{self.config.base_url}/api/oauth/token",
             json={
-                "client_id": self.config.client_id,
-                "client_secret": self.config.client_secret,
+                "client_id": self.config.client_config_id,
+                "client_secret": self.config.client_config_secret,
                 "grant_type": "client_credentials"
             },
             timeout=self.config.timeout
@@ -174,7 +235,14 @@ class XyphosClient:
         if "headers" in kwargs:
             headers.update(kwargs.pop("headers"))
 
-        response = self._session.request(
+        # Handle request encryption
+        if "json" in kwargs and self._public_key:
+            encrypted_data = self._encrypt_request(kwargs["json"])
+            kwargs["data"] = base64.b64encode(encrypted_data).decode('utf-8')
+            headers["X-Request-Encrypted"] = "true"
+            del kwargs["json"]
+
+        response = self.session.request(
             method,
             f"{self.config.base_url}/api{path}",
             headers=headers,
@@ -195,6 +263,11 @@ class XyphosClient:
             raise RateLimitError("Rate limit exceeded")
         elif response.status_code >= 500:
             raise ServerError(f"Server error: {response.status_code}")
+
+        # Handle response decryption
+        if response.headers.get("X-Response-Encrypted") == "true":
+            encrypted_data = base64.b64decode(response.content)
+            return self._decrypt_response(encrypted_data)
 
         return response.json()
 

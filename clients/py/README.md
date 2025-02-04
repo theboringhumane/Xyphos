@@ -1,254 +1,237 @@
 # 🔐 Xyphos Python Client
 
-> Why do Python developers love our KMS client? Because it's as simple as `import secrets`! 🐍
+Official Python client for Xyphos - the open-source key management system.
 
-[![PyPI version](https://badge.fury.io/py/xyphos-client.svg)](https://badge.fury.io/py/xyphos-client)
-[![Python versions](https://img.shields.io/pypi/pyversions/xyphos-client.svg)](https://pypi.org/project/xyphos-client/)
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+## ✨ Features
+
+- 🔒 End-to-end encryption using RSA-OAEP
+- 🔄 Automatic retry mechanism with exponential backoff
+- 🎯 Type hints with Python 3.8+ support
+- 🔐 JWT-based authentication
+- 📦 Modern cryptography library integration
+- ⚡ Async/await support
 
 ## 📦 Installation
 
 ```bash
-# pip
 pip install xyphos-client
-
-# poetry
+# or
 poetry add xyphos-client
-
-# pipenv
-pipenv install xyphos-client
 ```
 
 ## 🚀 Quick Start
 
 ```python
-from xyphos_client import XyphosClient, RetryConfig
+from xyphos_client import XyphosClient
 
-# 🔐 Initialize client
+# Initialize client
 client = XyphosClient(
     base_url="http://localhost:8080",
-    client_id="your-client-id",
-    client_secret="your-client-secret",
-    retry_config=RetryConfig(
-        max_retries=3,
-        initial_wait=0.1,
-        max_wait=2.0
-    )
+    client_config_id="your-client-id",
+    client_config_secret="your-client-secret"
 )
 
-# 📦 Create and manage projects
-project = client.create_project(
-    name="my-project",
-    description="My first Xyphos project"
-)
-
-# 💍 Create a keyring
-keyring = client.create_keyring(
-    project_id=project.id,
-    location_id="us-west1",
-    name="app-keys"
-)
-
-# 🔑 Create a crypto key
-key = client.create_crypto_key(
-    project_id=project.id,
-    location_id="us-west1",
-    keyring_id=keyring.id,
-    name="encryption-key",
-    algorithm="AES256-GCM",
+# Encrypt data
+plaintext = b"Hello, World!"
+ciphertext, key_version = await client.encrypt(
+    keyring_name="my-keyring",
     purpose="ENCRYPT_DECRYPT",
-    rotation_period=30  # days
+    plaintext=plaintext
 )
 
-# 🔒 Encrypt data
-result = client.encrypt(
-    project_id=project.id,
-    location_id="us-west1",
-    keyring_id=keyring.id,
-    key_id=key.id,
-    plaintext="secret message"
+# Decrypt data
+decrypted = await client.decrypt(
+    keyring_name="my-keyring",
+    purpose="ENCRYPT_DECRYPT",
+    ciphertext=ciphertext,
+    key_version=key_version
 )
-print(f"Encrypted data: {result.ciphertext}")
-print(f"Key version: {result.key_version}")
-
-# 🔓 Decrypt data
-decrypted = client.decrypt(
-    project_id=project.id,
-    location_id="us-west1",
-    keyring_id=keyring.id,
-    key_id=key.id,
-    ciphertext=result.ciphertext
-)
-print(f"Decrypted data: {decrypted.plaintext}")
 ```
 
-## 🎯 Features
-
-- 🔐 **Type Safety**
-  - Full type hints
-  - Runtime validation
-  - Comprehensive error types
-
-- 🔄 **Automatic Retries**
-  - Configurable retry policy
-  - Exponential backoff
-  - Circuit breaker pattern
-
-- 🌐 **Modern Python**
-  - Python 3.8+
-  - Synchronous API
-  - Structured error handling
-
-- 🧪 **Testing Utilities**
-  - Mock client
-  - Test fixtures
-  - Pytest helpers
-
-## 📚 API Reference
-
-### Client Configuration
+## 🔧 Configuration
 
 ```python
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 @dataclass
 class RetryConfig:
     max_retries: int = 3
-    initial_wait: float = 0.1
-    max_wait: float = 2.0
+    backoff_factor: float = 0.1
+    status_forcelist: List[int] = [500, 502, 503, 504, 429]
 
 @dataclass
 class ClientConfig:
-    base_url: str
-    client_id: str
-    client_secret: str
-    timeout: int = 30
-    retry_config: RetryConfig = RetryConfig()
+    # Required configuration
+    base_url: str                # API base URL
+    client_config_id: str        # Client ID from Xyphos
+    client_config_secret: str    # Client secret from Xyphos
+
+    # Optional configuration
+    timeout: float = 30.0        # Request timeout in seconds
+    private_key: Optional[str] = None  # RSA private key for request encryption
+    retry_config: Optional[RetryConfig] = None
 ```
 
-### Resource Types
+## 📚 API Reference
+
+### Key Management
 
 ```python
-@dataclass
-class Project:
-    id: str
-    name: str
-    description: str
-    created_at: datetime
+# Create a keyring
+await client.create_keyring(name: str) -> None
 
-@dataclass
-class KeyRing:
-    id: str
-    name: str
-    created_at: datetime
+# List keyrings
+await client.list_keyrings() -> List[str]
 
-@dataclass
-class CryptoKey:
-    id: str
-    name: str
-    algorithm: str
-    purpose: str
+# List keys in a keyring
+await client.list_keys(keyring_name: str) -> List[str]
+
+# Get key information
+await client.get_key_info(
+    keyring_name: str,
+    key_name: str
+) -> KeyInfo
+
+# Create a new key
+await client.create_key(
+    keyring_name: str,
+    algorithm: str,
+    purpose: str,
     rotation_period: int
-    created_at: datetime
-    next_rotation: datetime
-    version: int
+) -> None
 ```
 
-## 🔐 Security Best Practices
+### Encryption Operations
 
-1. 🔑 **Credential Management**
 ```python
-# ✅ Good: Use environment variables
-import os
+# Encrypt data
+await client.encrypt(
+    keyring_name: str,
+    purpose: str,
+    plaintext: bytes
+) -> Tuple[bytes, int]
 
-client = XyphosClient(
-    client_id=os.getenv("XYPHOS_CLIENT_ID"),
-    client_secret=os.getenv("XYPHOS_CLIENT_SECRET")
-)
-
-# ❌ Bad: Hardcode credentials
-client = XyphosClient(
-    client_id="client-id-1234",
-    client_secret="secret-5678"
-)
+# Decrypt data
+await client.decrypt(
+    keyring_name: str,
+    purpose: str,
+    ciphertext: bytes,
+    key_version: int
+) -> bytes
 ```
 
-2. 🌐 **HTTPS Enforcement**
+## 🔐 Security Features
+
+### End-to-End Encryption
+
 ```python
-# ✅ Good: Use HTTPS URLs
+# Initialize client with encryption enabled
 client = XyphosClient(
-    base_url="https://kms.example.com"
+    base_url="http://localhost:8080",
+    client_config_id="your-client-id",
+    client_config_secret="your-client-secret",
+    private_key="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 )
 
-# ❌ Bad: Use HTTP in production
-client = XyphosClient(
-    base_url="http://kms.example.com"
-)
+# All requests/responses will be automatically encrypted
 ```
 
-3. ⏱️ **Timeouts & Retries**
+### Authentication
+
+The client automatically handles:
+- JWT token acquisition
+- Token refresh
+- Secure token storage
+- Request signing
+
+## 🔄 Retry Mechanism
+
 ```python
-# ✅ Good: Configure timeouts and retries
+from xyphos_client import RetryConfig
+
+# Custom retry configuration
 client = XyphosClient(
-    timeout=30,
+    base_url="http://localhost:8080",
+    client_config_id="your-client-id",
+    client_config_secret="your-client-secret",
     retry_config=RetryConfig(
-        max_retries=3,
-        initial_wait=0.1,
-        max_wait=2.0
+        max_retries=5,
+        backoff_factor=0.2,
+        status_forcelist=[500, 502, 503, 504, 429]
     )
 )
+```
+
+## 🚨 Error Handling
+
+```python
+from xyphos_client.exceptions import (
+    AuthenticationError,
+    PermissionError,
+    NotFoundError,
+    InvalidInputError,
+    KMSError
+)
+
+try:
+    await client.encrypt(...)
+except AuthenticationError:
+    # Handle authentication failure
+except PermissionError:
+    # Handle permission issues
+except NotFoundError:
+    # Handle missing resources
+except InvalidInputError:
+    # Handle invalid input
+except KMSError:
+    # Handle general KMS errors
+```
+
+## 🔍 Debugging
+
+Enable debug logging:
+
+```python
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("xyphos_client")
+logger.setLevel(logging.DEBUG)
 ```
 
 ## 🧪 Testing
 
 ```bash
-# Install dev dependencies
-pip install -e ".[dev]"
-
-# Run all tests
+# Run unit tests
 pytest
 
 # Run with coverage
 pytest --cov=xyphos_client
 
-# Run type checking
-mypy xyphos_client
-
-# Run linting
-ruff check xyphos_client
+# Run integration tests
+pytest tests/integration
 ```
 
-### Pytest Fixtures
+## 📝 Type Hints
+
+Full type hints are included:
 
 ```python
-def test_encryption(mock_client):
-    result = mock_client.encrypt(
-        project_id="test-project",
-        location_id="us-west1",
-        keyring_id="test-keyring",
-        key_id="test-key",
-        plaintext="secret"
-    )
-    assert result.key_version == 1
+from xyphos_client.types import (
+    ClientConfig,
+    KeyInfo,
+    EncryptResponse,
+    DecryptResponse,
+    XyphosError
+)
 ```
 
 ## 🤝 Contributing
 
-> Why do Python developers make great cryptographers? Because they can handle exceptions! 🐍
+We welcome contributions! Please see our [Contributing Guide](../../CONTRIBUTING.md).
 
-1. Fork the repository
-2. Create your feature branch
-3. Run the tests
-4. Submit a pull request
+## 📄 License
 
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE)
-
-## 🧑‍💻 Author
-
-Created with ❤️ by [Harsh VARDHAN GOSWAMI](https://github.com/theboringhumane)
-
----
-*Remember: Explicit is better than implicit, especially in crypto! 🔍* 
+MIT License - see [LICENSE](../../LICENSE) 

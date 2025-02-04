@@ -1,0 +1,61 @@
+{
+  "name": "lambda-kms-client",
+  "version": "0.1.0",
+  "description": "A client library for Xyphos - a secure multi-tenant key management system",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src",
+    "prepublishOnly": "npm run build",
+    "docs": "typedoc --out docs src/index.ts"
+  },
+  "keywords": [
+    "kms",
+    "encryption",
+    "security",
+    "cryptography",
+    "key-management"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/lambda-kms.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/xyphos/issues"
+  },
+  "homepage": "https://github.com/yourusername/lambda-kms#readme",
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.0.0",
+    "tsup": "^8.0.0",
+    "typedoc": "^0.25.12",
+    "typedoc-plugin-markdown": "^4.4.1",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,215 +1,223 @@
 # 🔐 Xyphos TypeScript Client
 
-> Why do TypeScript developers love our KMS client? Because it's strongly typed and weakly coupled! 🎯
+Official TypeScript client for Xyphos - the open-source key management system.
 
-[![npm version](https://img.shields.io/npm/v/lambda-kms-client.svg)](https://www.npmjs.com/package/lambda-kms-client)
-[![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+## ✨ Features
+
+- 🔒 End-to-end encryption using RSA-OAEP
+- 🔄 Automatic retry mechanism with exponential backoff
+- 🎯 Type-safe API with full TypeScript support
+- 🔐 JWT-based authentication
+- 📦 WebCrypto API integration
+- ⚡ Promise-based async/await API
 
 ## 📦 Installation
 
 ```bash
-# npm
 npm install @xyphos/client
-
-# yarn
+# or
 yarn add @xyphos/client
-
-# pnpm
-pnpm add @xyphos/client
 ```
 
 ## 🚀 Quick Start
 
 ```typescript
-import { KMSClient } from '@xyphos/client'
+import { XyphosClient } from '@xyphos/client';
 
-// 🔐 Initialize client
-const client = new KMSClient({
-    baseUrl: 'http://localhost:8080',
-    projectId: 'my-project',
-    apiKey: process.env.KMS_API_KEY,
-    retryConfig: {
-        maxRetries: 3,
-        backoffFactor: 0.1,
-        statusForcelist: [500, 502, 503, 504, 429],
-    },
-})
+const client = new XyphosClient({
+  baseURL: 'http://localhost:8080',
+  clientConfigId: 'your-client-id',
+  clientConfigSecret: 'your-client-secret'
+});
 
-async function example() {
-    // 🔑 Create a keyring
-    const keyring = await client.createKeyRing({
-        locationId: 'us-west1',
-        keyRingId: 'app-keys',
-        description: 'Application encryption keys',
-    })
+// Encrypt data
+const plaintext = new TextEncoder().encode('Hello, World!');
+const [ciphertext, keyVersion] = await client.encrypt(
+  'my-keyring',
+  'ENCRYPT_DECRYPT',
+  plaintext
+);
 
-    // 🗝️ Create a key
-    const key = await client.createKey({
-        locationId: 'us-west1',
-        keyRingId: keyring.id,
-        keyId: 'encryption-key',
-        algorithm: 'AES256-GCM',
-        purpose: 'ENCRYPT_DECRYPT',
-    })
-
-    // 🔒 Encrypt data
-    const { ciphertext, keyVersion } = await client.encrypt({
-        locationId: 'us-west1',
-        keyRingId: keyring.id,
-        keyId: key.id,
-        plaintext: 'secret message',
-    })
-
-    console.log('Encrypted data:', ciphertext.toString('base64'))
-}
+// Decrypt data
+const decrypted = await client.decrypt(
+  'my-keyring',
+  'ENCRYPT_DECRYPT',
+  ciphertext,
+  keyVersion
+);
 ```
 
-## 🎯 Features
+## 🔧 Configuration
 
-- 🔐 **Type Safety**
-  - Full TypeScript support
-  - Comprehensive type definitions
-  - Compile-time validation
+```typescript
+interface ClientConfig {
+  // Required configuration
+  baseURL: string;              // API base URL
+  clientConfigId: string;       // Client ID from Xyphos
+  clientConfigSecret: string;   // Client secret from Xyphos
 
-- 🔄 **Automatic Retries**
-  - Configurable retry policy
-  - Exponential backoff
-  - Circuit breaker pattern
-
-- 🌐 **Modern JavaScript**
-  - ESM and CommonJS support
-  - Promise-based API
-  - WebCrypto integration
-
-- 🧪 **Testing Utilities**
-  - Mock client
-  - Test fixtures
-  - Jest matchers
+  // Optional configuration
+  timeout?: number;             // Request timeout in ms (default: 30000)
+  privateKey?: string;          // RSA private key for request encryption
+  retryConfig?: {
+    maxRetries: number;         // Maximum retry attempts (default: 3)
+    backoffFactor: number;      // Exponential backoff factor (default: 0.1)
+    statusForcelist: number[];  // Status codes to retry (default: [500, 502, 503, 504, 429])
+  };
+}
+```
 
 ## 📚 API Reference
 
-### Client Configuration
-
-```typescript
-interface KMSConfig {
-    baseUrl: string
-    projectId: string
-    apiKey: string
-    retryConfig?: {
-        maxRetries: number
-        backoffFactor: number
-        statusForcelist: number[]
-    }
-    httpClient?: AxiosInstance
-    logger?: Logger
-}
-```
-
-### Key Operations
+### Key Management
 
 ```typescript
 // Create a keyring
-createKeyRing(params: CreateKeyRingParams): Promise<KeyRing>
+await client.createKeyring(name: string): Promise<void>
 
-// Create a key
-createKey(params: CreateKeyParams): Promise<Key>
+// List keyrings
+await client.listKeyrings(): Promise<string[]>
 
+// List keys in a keyring
+await client.listKeys(keyringName: string): Promise<string[]>
+
+// Get key information
+await client.getKeyInfo(
+  keyringName: string,
+  keyName: string
+): Promise<KeyInfo>
+
+// Create a new key
+await client.createKey(
+  keyringName: string,
+  algorithm: string,
+  purpose: string,
+  rotationPeriod: number
+): Promise<void>
+```
+
+### Encryption Operations
+
+```typescript
 // Encrypt data
-encrypt(params: EncryptParams): Promise<EncryptResponse>
+await client.encrypt(
+  keyringName: string,
+  purpose: string,
+  plaintext: Uint8Array
+): Promise<[Uint8Array, number]>
 
 // Decrypt data
-decrypt(params: DecryptParams): Promise<DecryptResponse>
-
-// Rotate key
-rotateKey(params: RotateKeyParams): Promise<Key>
+await client.decrypt(
+  keyringName: string,
+  purpose: string,
+  ciphertext: Uint8Array,
+  keyVersion: number
+): Promise<Uint8Array>
 ```
 
-## 🔐 Security Best Practices
+## 🔐 Security Features
 
-1. 🔑 **API Key Management**
+### End-to-End Encryption
+
 ```typescript
-// ✅ Good: Use environment variables
-const client = new KMSClient({
-    apiKey: process.env.KMS_API_KEY,
-})
+// Initialize client with encryption enabled
+const client = new XyphosClient({
+  baseURL: 'http://localhost:8080',
+  clientConfigId: 'your-client-id',
+  clientConfigSecret: 'your-client-secret',
+  privateKey: '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----'
+});
 
-// ❌ Bad: Hardcode credentials
-const client = new KMSClient({
-    apiKey: 'secret-key-1234',
-})
+// All requests/responses will be automatically encrypted
 ```
 
-2. 🌐 **HTTPS Enforcement**
+### Authentication
+
+The client automatically handles:
+- JWT token acquisition
+- Token refresh
+- Secure token storage
+- Request signing
+
+## 🔄 Retry Mechanism
+
 ```typescript
-// ✅ Good: Custom axios config with HTTPS enforcement
-const client = new KMSClient({
-    httpClient: axios.create({
-        httpsAgent: new https.Agent({
-            minVersion: 'TLSv1.2',
-            maxVersion: 'TLSv1.3',
-        }),
-    }),
-})
+// Custom retry configuration
+const client = new XyphosClient({
+  baseURL: 'http://localhost:8080',
+  clientConfigId: 'your-client-id',
+  clientConfigSecret: 'your-client-secret',
+  retryConfig: {
+    maxRetries: 5,
+    backoffFactor: 0.2,
+    statusForcelist: [500, 502, 503, 504, 429]
+  }
+});
 ```
 
-3. ⏱️ **Timeouts & Retries**
+## 🚨 Error Handling
+
 ```typescript
-// ✅ Good: Configure timeouts and retries
-const client = new KMSClient({
-    retryConfig: {
-        maxRetries: 3,
-        backoffFactor: 0.1,
-        statusForcelist: [500, 502, 503, 504, 429],
-    },
-    httpClient: axios.create({
-        timeout: 5000,
-    }),
-})
+try {
+  await client.encrypt(/*...*/);
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    // Handle authentication failure
+  } else if (error instanceof PermissionError) {
+    // Handle permission issues
+  } else if (error instanceof NotFoundError) {
+    // Handle missing resources
+  } else if (error instanceof InvalidInputError) {
+    // Handle invalid input
+  } else if (error instanceof KMSError) {
+    // Handle general KMS errors
+  }
+}
+```
+
+## 🔍 Debugging
+
+Enable debug logging:
+
+```typescript
+// Set environment variable
+process.env.DEBUG = 'xyphos:*';
+
+// Or in browser
+localStorage.debug = 'xyphos:*';
 ```
 
 ## 🧪 Testing
 
 ```bash
-# Run all tests
+# Run unit tests
 npm test
 
 # Run with coverage
 npm run test:coverage
 
-# Run type checking
-npm run type-check
+# Run integration tests
+npm run test:integration
 ```
 
-### Jest Matchers
+## 📝 Type Definitions
+
+Full TypeScript definitions are included:
 
 ```typescript
-import { kmsMatchers } from '@xyphos/client/testing'
-
-expect.extend(kmsMatchers)
-
-test('encryption works', async () => {
-    const response = await client.encrypt(params)
-    expect(response).toBeValidEncryptResponse()
-})
+import type {
+  ClientConfig,
+  KeyInfo,
+  EncryptResponse,
+  DecryptResponse,
+  XyphosError
+} from '@xyphos/client';
 ```
 
 ## 🤝 Contributing
 
-> Why do TypeScript developers make great cryptographers? Because they keep their types secret! 🤫
+We welcome contributions! Please see our [Contributing Guide](../../CONTRIBUTING.md).
 
-1. Fork the repository
-2. Create your feature branch
-3. Run the tests
-4. Submit a pull request
+## 📄 License
 
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE)
-
-## 🧑‍💻 Author
-
-Created with ❤️ by [Harsh VARDHAN GOSWAMI](https://github.com/theboringhumane)
-
----
-*Remember: Type safety is the best security! 🛡️* 
+MIT License - see [LICENSE](../../LICENSE) 
