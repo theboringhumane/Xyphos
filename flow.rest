@@ -1,131 +1,167 @@
 @baseUrl = http://localhost:8080
-@authToken = {{login.response.body.token}}
+@code = 6da4b72a7f35501f5c5f
+@state = qnGJxOuRIxtNbejg1AD5TNwyyROdnUfzZ2An5kXdgDA
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
+
+### 🏥 Health Check
+GET {{baseUrl}}/health
+
+### 🔐 Authentication Start github
+# @name githubLogin
+GET {{baseUrl}}/auth/github/login
 
 ### 🔐 Authentication
+# @name token
+GET {{baseUrl}}/auth/github/callback?code={{code}}&state={{state}}
+Content-Type: application/json
 
-# @name login
-POST {{baseUrl}}/auth/login
+### 🔑 Generate Key Pair
+# @name generateKeyPair
+POST {{baseUrl}}/api/key-pairs/generate
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-    "email": "user@example.com",
-    "password": "your-password"
+    "algorithm": "RSA-OAEP-4096",
+    "expiresIn": "24h"
 }
 
-### 🏢 Project Management
-
+### 📦 Project Management
 # @name createProject
 POST {{baseUrl}}/api/projects
-Authorization: Bearer {{authToken}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 Content-Type: application/json
+# X-Request-Encrypted: true
+# X-Response-Encrypted: true
 
 {
-    "name": "My Project",
-    "description": "Project description"
+    "name": "Toxic Project",
+    "description": "Toxic Project description"
 }
 
+### 📦 List Projects
 # @name listProjects
 GET {{baseUrl}}/api/projects
-Authorization: Bearer {{authToken}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 
+### 📦 Get Project
 # @name getProject
+@projectId = {{createProject.response.body.id}}
 GET {{baseUrl}}/api/projects/{{projectId}}
-Authorization: Bearer {{authToken}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
+X-Response-Encrypted: true
 
 ### 📍 Location Management
 
-# @name createLocation
-POST {{baseUrl}}/api/projects/{{projectId}}/locations
-Authorization: Bearer {{authToken}}
-Content-Type: application/json
-
-{
-    "name": "us-west1",
-    "description": "US West Region"
-}
-
+### 📍 List Locations
 # @name listLocations
 GET {{baseUrl}}/api/projects/{{projectId}}/locations
-Authorization: Bearer {{authToken}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
+X-Response-Encrypted: true
+
+### 📍 Get Location
+# @name getLocation
+@locationId = {{listLocations.response.body.locations[0].id}}
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
+X-Response-Encrypted: true
 
 ### 💍 KeyRing Management
 
+### 💍 Create KeyRing
 # @name createKeyRing
 POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings
-Authorization: Bearer {{authToken}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 Content-Type: application/json
+# X-Request-Encrypted: true
+# X-Response-Encrypted: true
 
 {
-    "name": "my-keyring",
-    "description": "My KeyRing"
+    "name": "toxic-keyring",
+    "description": "Toxic KeyRing"
 }
 
 # @name listKeyRings
 GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
+X-Response-Encrypted: true
 
 # @name getKeyRing
+@keyringId = {{createKeyRing.response.body.id}}
 GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}
-Authorization: Bearer {{authToken}}
-
-# @name deleteKeyRing
-DELETE {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
+X-Response-Encrypted: true
 
 ### 🔑 CryptoKey Management
 
+### 🔑 Create CryptoKey
 # @name createCryptoKey
 POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
 Content-Type: application/json
+X-Request-Encrypted: true
+X-Response-Encrypted: true
 
 {
     "name": "my-key",
     "purpose": "ENCRYPT_DECRYPT",
-    "algorithm": "AES-256-GCM",
+    "algorithm": "AES256-GCM",
     "rotationPeriod": "2592000s" // 30 days
 }
 
 # @name listCryptoKeys
 GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
+X-Response-Encrypted: true
 
 # @name getCryptoKey
+@keyId = {{createCryptoKey.response.body.id}}
 GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
+X-Response-Encrypted: true
 
 # @name rotateCryptoKey
-POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}:rotate
-Authorization: Bearer {{authToken}}
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}/rotate
+Authorization: Bearer {{token.response.body.token}}
+X-Response-Encrypted: true
 
 ### 🔒 Encryption Operations
 
 # @name encrypt
-POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}:encrypt
-Authorization: Bearer {{authToken}}
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}/encrypt
+Authorization: Bearer {{token.response.body.token}}
 Content-Type: application/json
+X-Request-Encrypted: true
+X-Response-Encrypted: true
+X-HSM-Encrypt: true
 
 {
-    "plaintext": "SGVsbG8gV29ybGQ=", // Base64 encoded
+    "plaintext": "SGVsbG8gV29ybGQ=", // Base64 encoded "Hello World"
     "additionalAuthenticatedData": "context" // Optional
 }
 
 # @name decrypt
-POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}:decrypt
-Authorization: Bearer {{authToken}}
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}/decrypt
+Authorization: Bearer {{token.response.body.token}}
 Content-Type: application/json
+X-Request-Encrypted: true
+X-Response-Encrypted: true
+X-HSM-Encrypt: true
 
 {
-    "ciphertext": "...", // From encrypt response
+    "ciphertext": "{{encrypt.response.body.ciphertext}}",
+    "keyVersion": {{encrypt.response.body.keyVersion}},
     "additionalAuthenticatedData": "context" // Optional, must match encrypt request
 }
 
-### 📝 Client Configuration
+### 🔑 Client Configuration Management
 
 # @name createClientConfig
 POST {{baseUrl}}/api/client-configs
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
 Content-Type: application/json
+X-Request-Encrypted: true
+X-Response-Encrypted: true
 
 {
     "name": "My Client",
@@ -135,17 +171,25 @@ Content-Type: application/json
 
 # @name listClientConfigs
 GET {{baseUrl}}/api/client-configs
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
+X-Response-Encrypted: true
 
 # @name getClientConfig
+@configId = {{createClientConfig.response.body.id}}
 GET {{baseUrl}}/api/client-configs/{{configId}}
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
+X-Response-Encrypted: true
+
+# @name revokeClientConfig
+POST {{baseUrl}}/api/client-configs/{{configId}}/revoke
+Authorization: Bearer {{token.response.body.token}}
+X-Response-Encrypted: true
 
 ### 📊 Audit Logs
 
 # @name listAuditLogs
 GET {{baseUrl}}/api/audit-logs
-Authorization: Bearer {{authToken}}
+Authorization: Bearer {{token.response.body.token}}
 Content-Type: application/json
 
 {

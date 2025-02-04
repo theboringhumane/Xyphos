@@ -12,9 +12,9 @@ const handler = NextAuth({
       token: {
         url: `${API_URL}/auth/github/callback`,
         async request({ params }) {
-          const { code } = params
+          const { code, state } = params
           // 🔑 Exchange code for token with backend
-          const response = await fetch(`${API_URL}/auth/github/callback?code=${code}`)
+          const response = await fetch(`${API_URL}/auth/github/callback?code=${code}&state=${state}`)
           const data = await response.json()
           return { tokens: { access_token: data.token } }
         }

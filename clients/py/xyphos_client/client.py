@@ -1,17 +1,32 @@
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-import time
 import base64
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional, List, Dict, Any, Union
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.backends import default_backend
 import json
+import os
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Union, Any
 
+import httpx
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
+
+from .models import (
+    ClientConfig,
+    RetryConfig,
+    Project,
+    Location,
+    KeyRing,
+    KMSKey,
+    ClientConfigInfo,
+    CreateProjectRequest,
+    CreateCryptoKeyRequest,
+    CreateClientConfigRequest,
+    EncryptResponse,
+    DecryptResponse,
+)
 from .exceptions import (
+    KMSError,
     AuthenticationError,
     NotFoundError,
     PermissionError,
@@ -20,373 +35,349 @@ from .exceptions import (
     ServerError,
 )
 
-
-@dataclass
-class RetryConfig:
-    """🔄 Configuration for retry behavior"""
-    max_retries: int = 3
-    initial_wait: float = 0.1
-    max_wait: float = 2.0
-
-
+# 🔐 Client configuration
 @dataclass
 class ClientConfig:
-    """🔧 Configuration for the Xyphos client"""
     base_url: str
-    client_config_id: str  # 🔑 Client config ID from the KMS service
-    client_config_secret: str  # 🔐 Client config secret from the KMS service
-    timeout: int = 30
-    retry_config: RetryConfig = field(default_factory=RetryConfig)
-    private_key: Optional[str] = None  # 🔐 RSA private key in PEM format
+    client_id: str
+    client_secret: str
+    private_key: str
+    public_key: str
+    timeout: float = 30.0
+    retry_config: Optional[RetryConfig] = None
 
-
+# 🔄 Retry configuration
 @dataclass
-class ClientConfigInfo:
-    """🔐 Client configuration information"""
-    id: str
-    secret: str
-    expires_at: datetime
-    permissions: List[str]
+class RetryConfig:
+    max_retries: int = 3
+    initial_wait: float = 1.0
+    max_wait: float = 10.0
+    backoff_factor: float = 2.0
+    status_forcelist: List[int] = field(default_factory=lambda: [429])
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ClientConfigInfo':
-        return cls(
-            id=data['id'],
-            secret=data['secret'],
-            expires_at=datetime.fromisoformat(data['expiresAt']),
-            permissions=data['permissions']
-        )
+# 🌐 Main client class
+class Client:
+    """🔐 Client for interacting with Xyphos KMS"""
 
-
-@dataclass
-class Project:
-    """📦 Project resource"""
-    id: str
-    name: str
-    description: str
-    created_at: datetime
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Project':
-        return cls(
-            id=data['id'],
-            name=data['name'],
-            description=data['description'],
-            created_at=datetime.fromisoformat(data['created_at'])
-        )
-
-
-@dataclass
-class Location:
-    """📍 Location resource"""
-    id: str
-    name: str
-    created_at: datetime
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Location':
-        return cls(
-            id=data['id'],
-            name=data['name'],
-            created_at=datetime.fromisoformat(data['created_at'])
-        )
-
-
-@dataclass
-class KeyRing:
-    """💍 KeyRing resource"""
-    id: str
-    name: str
-    created_at: datetime
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'KeyRing':
-        return cls(
-            id=data['id'],
-            name=data['name'],
-            created_at=datetime.fromisoformat(data['created_at'])
-        )
-
-
-@dataclass
-class CryptoKey:
-    """🔑 CryptoKey resource"""
-    id: str
-    name: str
-    algorithm: str
-    purpose: str
-    rotation_period: int
-    created_at: datetime
-    next_rotation: datetime
-    version: int
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'CryptoKey':
-        return cls(
-            id=data['id'],
-            name=data['name'],
-            algorithm=data['algorithm'],
-            purpose=data['purpose'],
-            rotation_period=data['rotation_period'],
-            created_at=datetime.fromisoformat(data['created_at']),
-            next_rotation=datetime.fromisoformat(data['next_rotation']),
-            version=data['version']
-        )
-
-
-class XyphosClient:
-    """🌐 Client for interacting with Xyphos KMS"""
     def __init__(self, config: ClientConfig):
+        """Initialize the client with configuration"""
         self.config = config
-        self.session = self._create_session()
-        self._token: Optional[str] = None
-        self._token_expiry: Optional[datetime] = None
-        self._private_key: Optional[rsa.RSAPrivateKey] = None
-        self._public_key: Optional[rsa.RSAPublicKey] = None
-        if config.private_key:
-            self._init_keys(config.private_key)
+        self.token: Optional[str] = None
+        self.token_expiry: Optional[datetime] = None
+        self._key_cache: Dict[str, Any] = {}
 
-    def _init_keys(self, private_key_pem: str) -> None:
-        """🔐 Initialize RSA keys from PEM"""
-        private_key_bytes = private_key_pem.encode('utf-8')
-        self._private_key = serialization.load_pem_private_key(
-            private_key_bytes,
-            password=None,
-            backend=default_backend()
-        )
-        self._public_key = self._private_key.public_key()
+        if self.config.retry_config is None:
+            self.config.retry_config = RetryConfig()
 
-    def _encrypt_request(self, data: Dict[str, Any]) -> bytes:
-        """🔒 Encrypt request data using RSA-OAEP"""
-        if not self._public_key:
-            raise ValueError("Client keys not initialized")
-        
-        json_data = json.dumps(data).encode('utf-8')
-        return self._public_key.encrypt(
-            json_data,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
+        self._http_client = httpx.AsyncClient(
+            timeout=self.config.timeout,
+            headers={"User-Agent": "XyphosKMS-Python-Client/1.0"},
         )
 
-    def _decrypt_response(self, encrypted_data: bytes) -> Dict[str, Any]:
-        """🔓 Decrypt response data using RSA-OAEP"""
-        if not self._private_key:
-            raise ValueError("Client keys not initialized")
-        
-        decrypted_data = self._private_key.decrypt(
-            encrypted_data,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-        return json.loads(decrypted_data.decode('utf-8'))
+    async def close(self):
+        """Close the HTTP client"""
+        await self._http_client.aclose()
 
-    def _create_session(self) -> requests.Session:
-        """Create a session with retry configuration"""
-        session = requests.Session()
-        retry = Retry(
-            total=self.config.retry_config.max_retries,
-            backoff_factor=self.config.retry_config.initial_wait,
-            status_forcelist=[500, 502, 503, 504, 429]
-        )
-        adapter = HTTPAdapter(max_retries=retry)
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
-        return session
+    async def __aenter__(self):
+        """Async context manager entry"""
+        return self
 
-    def _ensure_token(self) -> None:
-        """🔑 Ensure a valid token is available"""
-        if self._token and self._token_expiry and time.time() < self._token_expiry:
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit"""
+        await self.close()
+
+    # 🔒 Authentication and request handling
+
+    async def _ensure_token(self):
+        """Ensure a valid token is available"""
+        if self.token and self.token_expiry and datetime.now() < self.token_expiry:
             return
 
-        response = self.session.post(
+        response = await self._http_client.post(
             f"{self.config.base_url}/api/oauth/token",
             json={
-                "client_id": self.config.client_config_id,
-                "client_secret": self.config.client_config_secret,
-                "grant_type": "client_credentials"
+                "client_id": self.config.client_id,
+                "client_secret": self.config.client_secret,
+                "grant_type": "client_credentials",
             },
-            timeout=self.config.timeout
         )
 
-        if response.status_code == 401:
-            raise AuthenticationError("Invalid credentials")
-        elif response.status_code != 200:
-            raise ServerError(f"Failed to obtain token: {response.status_code}")
+        if response.status_code != 200:
+            raise AuthenticationError(f"Failed to get token: {response.text}")
 
         data = response.json()
-        self._token = data["access_token"]
-        self._token_expiry = time.time() + data["expires_in"]
+        self.token = data["access_token"]
+        self.token_expiry = datetime.now() + timedelta(seconds=data["expires_in"])
 
-    def _request(self, method: str, path: str, **kwargs) -> Dict[str, Any]:
-        """🌐 Make an authenticated request to the API"""
-        self._ensure_token()
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        json_data: Optional[Dict] = None,
+        retry_count: int = 0,
+    ) -> httpx.Response:
+        """Make an authenticated request with retry logic"""
+        await self._ensure_token()
 
         headers = {
-            "Authorization": f"Bearer {self._token}",
+            "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
         }
 
-        if "headers" in kwargs:
-            headers.update(kwargs.pop("headers"))
+        try:
+            response = await self._http_client.request(
+                method,
+                f"{self.config.base_url}/api{path}",
+                json=json_data,
+                headers=headers,
+            )
 
-        # Handle request encryption
-        if "json" in kwargs and self._public_key:
-            encrypted_data = self._encrypt_request(kwargs["json"])
-            kwargs["data"] = base64.b64encode(encrypted_data).decode('utf-8')
-            headers["X-Request-Encrypted"] = "true"
-            del kwargs["json"]
+            if response.status_code == 429:
+                raise RateLimitError()
 
-        response = self.session.request(
-            method,
-            f"{self.config.base_url}/api{path}",
-            headers=headers,
-            timeout=self.config.timeout,
-            **kwargs
-        )
+            if (
+                response.status_code in self.config.retry_config.status_forcelist
+                and retry_count < self.config.retry_config.max_retries
+            ):
+                wait_time = min(
+                    self.config.retry_config.initial_wait
+                    * (self.config.retry_config.backoff_factor ** retry_count),
+                    self.config.retry_config.max_wait,
+                )
+                await httpx.AsyncClient.sleep(wait_time)
+                return await self._request(method, path, json_data, retry_count + 1)
 
-        if response.status_code == 401:
-            self._token = None
-            raise AuthenticationError("Authentication failed")
-        elif response.status_code == 403:
-            raise PermissionError("Permission denied")
-        elif response.status_code == 404:
-            raise NotFoundError("Resource not found")
-        elif response.status_code == 400:
-            raise InvalidInputError(response.json().get("message", "Invalid input"))
-        elif response.status_code == 429:
-            raise RateLimitError("Rate limit exceeded")
-        elif response.status_code >= 500:
-            raise ServerError(f"Server error: {response.status_code}")
+            if response.status_code == 401:
+                self.token = None
+                raise AuthenticationError()
 
-        # Handle response decryption
-        if response.headers.get("X-Response-Encrypted") == "true":
-            encrypted_data = base64.b64decode(response.content)
-            return self._decrypt_response(encrypted_data)
+            if response.status_code == 403:
+                raise PermissionError()
 
-        return response.json()
+            if response.status_code == 404:
+                raise NotFoundError()
 
-    # 📦 Project Operations
-    def create_project(self, name: str, description: str) -> Project:
+            if response.status_code == 400:
+                raise InvalidInputError(response.text)
+
+            if response.status_code >= 500:
+                raise ServerError(f"Server error: {response.status_code}")
+
+            return response
+
+        except httpx.RequestError as e:
+            raise KMSError(f"Request failed: {str(e)}")
+
+    # 📦 Project operations
+
+    async def create_project(self, request: CreateProjectRequest) -> Project:
         """Create a new project"""
-        data = self._request("POST", "/projects", json={
-            "name": name,
-            "description": description
-        })
-        return Project.from_dict(data)
+        response = await self._request("POST", "/projects", json_data=request.__dict__)
+        data = response.json()
+        return Project(**data)
 
-    def list_projects(self) -> List[Project]:
+    async def list_projects(self) -> List[Project]:
         """List all projects"""
-        data = self._request("GET", "/projects")
-        return [Project.from_dict(item) for item in data]
+        response = await self._request("GET", "/projects")
+        data = response.json()
+        return [Project(**item) for item in data["projects"]]
 
-    def get_project(self, project_id: str) -> Project:
+    async def get_project(self, project_id: str) -> Project:
         """Get a project by ID"""
-        data = self._request("GET", f"/projects/{project_id}")
-        return Project.from_dict(data)
+        response = await self._request("GET", f"/projects/{project_id}")
+        data = response.json()
+        return Project(**data)
 
-    # 💍 KeyRing Operations
-    def create_keyring(self, project_id: str, location_id: str, name: str) -> KeyRing:
+    # 📍 Location operations
+
+    async def list_locations(self, project_id: str) -> List[Location]:
+        """List all locations in a project"""
+        response = await self._request("GET", f"/projects/{project_id}/locations")
+        data = response.json()
+        return [Location(**item) for item in data["locations"]]
+
+    async def get_location(self, project_id: str, location_id: str) -> Location:
+        """Get a location by ID"""
+        response = await self._request(
+            "GET", f"/projects/{project_id}/locations/{location_id}"
+        )
+        data = response.json()
+        return Location(**data)
+
+    # 💍 KeyRing operations
+
+    async def create_keyring(
+        self, project_id: str, location_id: str, name: str
+    ) -> KeyRing:
         """Create a new keyring"""
-        data = self._request(
+        response = await self._request(
             "POST",
             f"/projects/{project_id}/locations/{location_id}/keyrings",
-            json={"name": name}
+            json_data={"name": name},
         )
-        return KeyRing.from_dict(data)
+        data = response.json()
+        return KeyRing(**data)
 
-    def list_keyrings(self, project_id: str, location_id: str) -> List[KeyRing]:
+    async def list_keyrings(
+        self, project_id: str, location_id: str
+    ) -> List[KeyRing]:
         """List all keyrings in a location"""
-        data = self._request("GET", f"/projects/{project_id}/locations/{location_id}/keyrings")
-        return [KeyRing.from_dict(item) for item in data]
-
-    def get_keyring(self, project_id: str, location_id: str, keyring_id: str) -> KeyRing:
-        """Get a keyring by ID"""
-        data = self._request(
-            "GET",
-            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}"
+        response = await self._request(
+            "GET", f"/projects/{project_id}/locations/{location_id}/keyrings"
         )
-        return KeyRing.from_dict(data)
+        data = response.json()
+        return [KeyRing(**item) for item in data["keyrings"]]
 
-    # 🔑 CryptoKey Operations
-    def create_crypto_key(
-            self, project_id: str, location_id: str, keyring_id: str,
-            name: str, algorithm: str, purpose: str, rotation_period: int
-    ) -> CryptoKey:
+    async def get_keyring(
+        self, project_id: str, location_id: str, keyring_id: str
+    ) -> KeyRing:
+        """Get a keyring by ID"""
+        response = await self._request(
+            "GET",
+            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}",
+        )
+        data = response.json()
+        return KeyRing(**data)
+
+    # 🔑 KMS Key operations
+
+    async def create_crypto_key(
+        self,
+        project_id: str,
+        location_id: str,
+        keyring_id: str,
+        request: CreateCryptoKeyRequest,
+    ) -> KMSKey:
         """Create a new crypto key"""
-        data = self._request(
+        response = await self._request(
             "POST",
             f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys",
-            json={
-                "name": name,
-                "algorithm": algorithm,
-                "purpose": purpose,
-                "rotation_period": rotation_period
-            }
+            json_data=request.__dict__,
         )
-        return CryptoKey.from_dict(data)
+        data = response.json()
+        return KMSKey(**data)
 
-    def list_crypto_keys(
-            self, project_id: str, location_id: str, keyring_id: str
-    ) -> List[CryptoKey]:
+    async def list_crypto_keys(
+        self, project_id: str, location_id: str, keyring_id: str
+    ) -> List[KMSKey]:
         """List all crypto keys in a keyring"""
-        data = self._request(
+        response = await self._request(
             "GET",
-            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys"
+            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys",
         )
-        return [CryptoKey.from_dict(item) for item in data]
+        data = response.json()
+        return [KMSKey(**item) for item in data["keys"]]
 
-    def get_crypto_key(
-            self, project_id: str, location_id: str, keyring_id: str, key_id: str
-    ) -> CryptoKey:
+    async def get_crypto_key(
+        self, project_id: str, location_id: str, keyring_id: str, key_id: str
+    ) -> KMSKey:
         """Get a crypto key by ID"""
-        data = self._request(
+        response = await self._request(
             "GET",
-            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}"
+            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}",
         )
-        return CryptoKey.from_dict(data)
+        data = response.json()
+        return KMSKey(**data)
 
-    def rotate_crypto_key(
-            self, project_id: str, location_id: str, keyring_id: str, key_id: str
-    ) -> CryptoKey:
+    async def rotate_crypto_key(
+        self, project_id: str, location_id: str, keyring_id: str, key_id: str
+    ) -> KMSKey:
         """Rotate a crypto key"""
-        data = self._request(
+        response = await self._request(
             "POST",
-            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:rotate"
+            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}/rotate",
         )
-        return CryptoKey.from_dict(data)
+        data = response.json()
+        return KMSKey(**data)
 
-    # 🔒 Cryptographic Operations
-    def encrypt(
-            self, project_id: str, location_id: str, keyring_id: str,
-            key_id: str, plaintext: str
-    ) -> Dict[str, str]:
+    # 🔐 Cryptographic operations
+
+    async def encrypt(
+        self,
+        project_id: str,
+        location_id: str,
+        keyring_id: str,
+        key_id: str,
+        plaintext: Union[str, bytes],
+    ) -> EncryptResponse:
         """Encrypt data using a crypto key"""
-        data = self._request(
-            "POST",
-            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:encrypt",
-            json={"plaintext": base64.b64encode(plaintext.encode()).decode()}
-        )
-        return {
-            "ciphertext": data["ciphertext"],
-            "key_version": data["key_version"]
-        }
+        if isinstance(plaintext, str):
+            plaintext_bytes = plaintext.encode()
+        else:
+            plaintext_bytes = plaintext
 
-    def decrypt(
-            self, project_id: str, location_id: str, keyring_id: str,
-            key_id: str, ciphertext: str
-    ) -> Dict[str, str]:
-        """Decrypt data using a crypto key"""
-        data = self._request(
+        plaintext_base64 = base64.b64encode(plaintext_bytes).decode()
+
+        response = await self._request(
             "POST",
-            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}:decrypt",
-            json={"ciphertext": ciphertext}
+            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}/encrypt",
+            json_data={"plaintext": plaintext_base64},
         )
-        return {
-            "plaintext": base64.b64decode(data["plaintext"]).decode()
-        }
+        data = response.json()
+        return EncryptResponse(**data)
+
+    async def decrypt(
+        self,
+        project_id: str,
+        location_id: str,
+        keyring_id: str,
+        key_id: str,
+        ciphertext: str,
+        key_version: int,
+    ) -> DecryptResponse:
+        """Decrypt data using a crypto key"""
+        response = await self._request(
+            "POST",
+            f"/projects/{project_id}/locations/{location_id}/keyrings/{keyring_id}/keys/{key_id}/decrypt",
+            json_data={"ciphertext": ciphertext, "key_version": key_version},
+        )
+        data = response.json()
+        return DecryptResponse(**data)
+
+    # 🔑 Client configuration operations
+
+    async def create_client_config(
+        self, request: CreateClientConfigRequest
+    ) -> ClientConfigInfo:
+        """Create a new client configuration"""
+        response = await self._request(
+            "POST", "/client-configs", json_data=request.__dict__
+        )
+        data = response.json()
+        return ClientConfigInfo(**data)
+
+    async def list_client_configs(self) -> List[ClientConfigInfo]:
+        """List all client configurations"""
+        response = await self._request("GET", "/client-configs")
+        data = response.json()
+        return [ClientConfigInfo(**item) for item in data["configs"]]
+
+    async def get_client_config(self, config_id: str) -> ClientConfigInfo:
+        """Get a client configuration by ID"""
+        response = await self._request("GET", f"/client-configs/{config_id}")
+        data = response.json()
+        return ClientConfigInfo(**data)
+
+    async def revoke_client_config(self, config_id: str) -> ClientConfigInfo:
+        """Revoke a client configuration"""
+        response = await self._request("POST", f"/client-configs/{config_id}/revoke")
+        data = response.json()
+        return ClientConfigInfo(**data)
+
+    # 🔑 Get cached public key
+    def _get_public_key(self, pem_key: str) -> rsa.RSAPublicKey:
+        if pem_key in self._key_cache:
+            return self._key_cache[pem_key]
+
+        key = load_pem_public_key(pem_key.encode())
+        self._key_cache[pem_key] = key
+        return key
+
+    # 🔑 Get cached private key
+    def _get_private_key(self, pem_key: str) -> rsa.RSAPrivateKey:
+        if pem_key in self._key_cache:
+            return self._key_cache[pem_key]
+
+        key = load_pem_private_key(pem_key.encode(), password=None)
+        self._key_cache[pem_key] = key
+        return key 

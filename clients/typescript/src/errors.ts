@@ -46,4 +46,14 @@ export class InvalidInputError extends KMSError {
     super(message);
     this.name = 'InvalidInputError';
   }
+}
+
+/**
+ * 🚨 Rate limit error
+ */
+export class RateLimitError extends KMSError {
+  constructor(message: string = 'Rate limit exceeded') {
+    super(message);
+    this.name = 'RateLimitError';
+  }
 } 
