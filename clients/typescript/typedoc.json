@@ -1,1 +1,19 @@
- 
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "name": "Xyphos TypeScript Client",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "theme": "default",
+  "readme": "README.md",
+  "sort": ["source-order"],
+  "categorizeByGroup": true,
+  "searchInComments": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/theboringhumane/xyphos",
+    "Documentation": "https://xyphos.io/docs"
+  }
+} 
