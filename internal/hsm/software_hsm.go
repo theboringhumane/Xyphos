@@ -216,49 +216,32 @@ func (h *softwareHSM) GenerateKey(ctx context.Context, algorithm string) ([]byte
 	}
 
 	switch algorithm {
-	case "AES-256":
+	case "AES-256-GCM":
 		key := make([]byte, 32) // 256 bits
 		if _, err := rand.Read(key); err != nil {
-			return nil, fmt.Errorf("failed to generate AES-256 key: %w", err)
+			return nil, fmt.Errorf("failed to generate AES-256-GCM key: %w", err)
 		}
 		return key, nil
 
-	case "AES-128":
-		key := make([]byte, 16) // 128 bits
-		if _, err := rand.Read(key); err != nil {
-			return nil, fmt.Errorf("failed to generate AES-128 key: %w", err)
-		}
-		return key, nil
-
-	case "RSA-2048":
-		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate RSA-2048 key: %w", err)
-		}
-		return x509.MarshalPKCS1PrivateKey(privateKey), nil
-
-	case "RSA-4096":
+	case "RSA-OAEP-4096":
 		privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate RSA-4096 key: %w", err)
+			return nil, fmt.Errorf("failed to generate RSA-OAEP-4096 key: %w", err)
 		}
 		return x509.MarshalPKCS1PrivateKey(privateKey), nil
 
-	case "EC-P256":
+	case "ECDSA-P256":
 		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate EC-P256 key: %w", err)
+			return nil, fmt.Errorf("failed to generate ECDSA-P256 key: %w", err)
 		}
-		return x509.MarshalECPrivateKey(privateKey)
-
-	case "EC-P384":
-		privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+		keyBytes, err := x509.MarshalECPrivateKey(privateKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate EC-P384 key: %w", err)
+			return nil, fmt.Errorf("failed to marshal ECDSA-P256 key: %w", err)
 		}
-		return x509.MarshalECPrivateKey(privateKey)
+		return keyBytes, nil
 
 	default:
-		return nil, fmt.Errorf("unsupported algorithm: %s", algorithm)
+		return nil, ErrInvalidAlgorithm
 	}
 }
