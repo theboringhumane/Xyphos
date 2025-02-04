@@ -1,0 +1,155 @@
+@baseUrl = http://localhost:8080
+@authToken = {{login.response.body.token}}
+
+### 🔐 Authentication
+
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "user@example.com",
+    "password": "your-password"
+}
+
+### 🏢 Project Management
+
+# @name createProject
+POST {{baseUrl}}/api/projects
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "My Project",
+    "description": "Project description"
+}
+
+# @name listProjects
+GET {{baseUrl}}/api/projects
+Authorization: Bearer {{authToken}}
+
+# @name getProject
+GET {{baseUrl}}/api/projects/{{projectId}}
+Authorization: Bearer {{authToken}}
+
+### 📍 Location Management
+
+# @name createLocation
+POST {{baseUrl}}/api/projects/{{projectId}}/locations
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "us-west1",
+    "description": "US West Region"
+}
+
+# @name listLocations
+GET {{baseUrl}}/api/projects/{{projectId}}/locations
+Authorization: Bearer {{authToken}}
+
+### 💍 KeyRing Management
+
+# @name createKeyRing
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "my-keyring",
+    "description": "My KeyRing"
+}
+
+# @name listKeyRings
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings
+Authorization: Bearer {{authToken}}
+
+# @name getKeyRing
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}
+Authorization: Bearer {{authToken}}
+
+# @name deleteKeyRing
+DELETE {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}
+Authorization: Bearer {{authToken}}
+
+### 🔑 CryptoKey Management
+
+# @name createCryptoKey
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "my-key",
+    "purpose": "ENCRYPT_DECRYPT",
+    "algorithm": "AES-256-GCM",
+    "rotationPeriod": "2592000s" // 30 days
+}
+
+# @name listCryptoKeys
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys
+Authorization: Bearer {{authToken}}
+
+# @name getCryptoKey
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}
+Authorization: Bearer {{authToken}}
+
+# @name rotateCryptoKey
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}:rotate
+Authorization: Bearer {{authToken}}
+
+### 🔒 Encryption Operations
+
+# @name encrypt
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}:encrypt
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "plaintext": "SGVsbG8gV29ybGQ=", // Base64 encoded
+    "additionalAuthenticatedData": "context" // Optional
+}
+
+# @name decrypt
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}:decrypt
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "ciphertext": "...", // From encrypt response
+    "additionalAuthenticatedData": "context" // Optional, must match encrypt request
+}
+
+### 📝 Client Configuration
+
+# @name createClientConfig
+POST {{baseUrl}}/api/client-configs
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "name": "My Client",
+    "permissions": ["encrypt", "decrypt"],
+    "expiresIn": "8760h" // 1 year
+}
+
+# @name listClientConfigs
+GET {{baseUrl}}/api/client-configs
+Authorization: Bearer {{authToken}}
+
+# @name getClientConfig
+GET {{baseUrl}}/api/client-configs/{{configId}}
+Authorization: Bearer {{authToken}}
+
+### 📊 Audit Logs
+
+# @name listAuditLogs
+GET {{baseUrl}}/api/audit-logs
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "startTime": "2024-01-01T00:00:00Z",
+    "endTime": "2024-01-31T23:59:59Z",
+    "filter": "resource.type=CryptoKey"
+} 

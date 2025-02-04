@@ -1,0 +1,141 @@
+### Get Token
+# @name getToken
+POST http://localhost:8080/auth/github/token
+Content-Type: application/json
+
+{
+    "client_id": "test-client",
+    "client_secret": "test-secret",
+    "grant_type": "client_credentials"
+}
+
+@token = {{getToken.response.body.access_token}}
+
+### List Projects
+# @name listProjects
+GET http://localhost:8080/api/projects
+Authorization: Bearer {{token}}
+
+### Create Project
+# @name createProject
+POST http://localhost:8080/api/projects
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "test-project",
+    "displayName": "Test Project"
+}
+
+@projectId = {{createProject.response.body.id}}
+
+### List Locations
+# @name listLocations
+GET http://localhost:8080/api/projects/{{projectId}}/locations
+Authorization: Bearer {{token}}
+
+@locationId = "us-west1"
+
+### List Keyrings
+# @name listKeyrings
+GET http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings
+Authorization: Bearer {{token}}
+
+### Create Keyring
+# @name createKeyring
+POST http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "test-keyring",
+    "description": "Test keyring for encryption operations"
+}
+
+@keyringId = {{createKeyring.response.body.id}}
+
+### Get Keyring
+# @name getKeyring
+GET http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}
+Authorization: Bearer {{token}}
+
+### List CryptoKeys
+# @name listKeys
+GET http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/cryptokeys
+Authorization: Bearer {{token}}
+
+### Create CryptoKey
+# @name createKey
+POST http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/cryptokeys
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "test-key",
+    "algorithm": "AES-256-GCM",
+    "purpose": "ENCRYPT_DECRYPT",
+    "rotationPeriod": "86400s"
+}
+
+@keyId = {{createKey.response.body.id}}
+
+### Rotate CryptoKey
+# @name rotateKey
+POST http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/cryptokeys/{{keyId}}:rotate
+Authorization: Bearer {{token}}
+
+### Encrypt Data
+# @name encryptData
+POST http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/cryptokeys/{{keyId}}:encrypt
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "plaintext": "SGVsbG8gV29ybGQ=",
+    "purpose": "ENCRYPT_DECRYPT"
+}
+
+@ciphertext = {{encryptData.response.body.ciphertext}}
+@keyVersion = {{encryptData.response.body.keyVersion}}
+
+### Decrypt Data
+# @name decryptData
+POST http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/cryptokeys/{{keyId}}:decrypt
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "ciphertext": "{{ciphertext}}",
+    "keyVersion": "{{keyVersion}}",
+    "purpose": "ENCRYPT_DECRYPT"
+}
+
+### Encrypt Data with New Key Version
+# @name encryptDataNewVersion
+POST http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/cryptokeys/{{keyId}}:encrypt
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "plaintext": "SGVsbG8gV29ybGQ=",
+    "purpose": "ENCRYPT_DECRYPT"
+}
+
+@newCiphertext = {{encryptDataNewVersion.response.body.ciphertext}}
+@newKeyVersion = {{encryptDataNewVersion.response.body.keyVersion}}
+
+### Decrypt Data with New Key Version
+POST http://localhost:8080/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/cryptokeys/{{keyId}}:decrypt
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "ciphertext": "{{newCiphertext}}",
+    "keyVersion": "{{newKeyVersion}}",
+    "purpose": "ENCRYPT_DECRYPT"
+}
+
+
+
+
+

@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xyphos
+  labels:
+    app: xyphos
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: xyphos
+  template:
+    metadata:
+      labels:
+        app: xyphos
+    spec:
+      containers:
+      - name: xyphos
+        image: xyphos:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PORT
+          value: "8080"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: ENV
+          value: "production"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: xyphos-secrets
+              key: jwt-secret
+        - name: R2_ACCOUNT_ID
+          valueFrom:
+            secretKeyRef:
+              name: xyphos-secrets
+              key: r2-account-id
+        - name: R2_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: xyphos-secrets
+              key: r2-access-key-id
+        - name: R2_ACCESS_KEY_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: xyphos-secrets
+              key: r2-access-key-secret
+        - name: R2_BUCKET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: xyphos-config
+              key: r2-bucket-name
+        - name: BACKUP_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: xyphos-config
+              key: backup-interval
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: xyphos-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xyphos
+spec:
+  selector:
+    app: xyphos
+  ports:
+  - port: 8080
+    targetPort: http
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: xyphos-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xyphos-config
+data:
+  r2-bucket-name: "xyphos-backups"
+  backup-interval: "24h"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: xyphos-secrets
+type: Opaque
+data:
+  # These values should be base64 encoded
+  jwt-secret: ${JWT_SECRET}
+  r2-account-id: ${R2_ACCOUNT_ID}
+  r2-access-key-id: ${R2_ACCESS_KEY_ID}
+  r2-access-key-secret: ${R2_ACCESS_KEY_SECRET} 
