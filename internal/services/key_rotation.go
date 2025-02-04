@@ -3,11 +3,11 @@ package services
 import (
 	"context"
 	"fmt"
-	"lambda-kms/internal/hsm"
-	"lambda-kms/internal/store"
 	"log"
 	"sync"
 	"time"
+	"xyphos/internal/hsm"
+	"xyphos/internal/store"
 )
 
 // 🔄 RotationConfig defines the configuration for key rotation
@@ -78,16 +78,16 @@ func (s *KeyRotationService) checkAndRotateKeys(ctx context.Context) error {
 	}
 
 	for _, project := range projects {
-		// Get all keyrings for the project
-		keyrings, err := s.store.ListKeyRings(ctx, project.ID)
+		// Get all keyrings for the project's tenant
+		keyrings, err := s.store.ListKeyRings(ctx, project.OwnerID)
 		if err != nil {
 			log.Printf("❌ Error listing keyrings for project %s: %v", project.ID, err)
 			continue
 		}
 
 		for _, keyring := range keyrings {
-			// Get all keys in the keyring
-			keys, err := s.store.ListKeys(ctx, keyring.ID, project.ID)
+			// Get all keys in the keyring for the tenant
+			keys, err := s.store.ListKeys(ctx, keyring.ID, keyring.Tenant)
 			if err != nil {
 				log.Printf("❌ Error listing keys for keyring %s: %v", keyring.ID, err)
 				continue
@@ -140,7 +140,8 @@ func (s *KeyRotationService) checkAndRotateKey(ctx context.Context, key *store.K
 	}
 
 	// Mark current version as deprecated
-	key.Versions[key.CurrentVersion-1].State = "DEPRECATED"
+	currentVersion.State = "DEPRECATED"
+	key.Versions[key.CurrentVersion-1] = currentVersion
 
 	// Add new version and update current version
 	key.Versions = append(key.Versions, newVersion)
