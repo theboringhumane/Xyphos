@@ -11,6 +11,7 @@ import (
 
 	"xyphos/internal/api/middleware"
 	"xyphos/internal/auth"
+	"xyphos/internal/crypto"
 	"xyphos/internal/hsm"
 	"xyphos/internal/services"
 	"xyphos/internal/store"
@@ -29,14 +30,21 @@ type Server struct {
 }
 
 // 🎯 NewServer creates a new API server instance
-func NewServer(store store.KMSStore, userStore store.UserStore, hsm hsm.Service) *Server {
+func NewServer(store store.Store, userStore store.UserStore, hsm hsm.Service) *Server {
 	// Create services
 	securityService := services.NewClientSecurityService()
 
 	// Create handlers
 	authHandler := auth.NewAuthHandler(userStore)
-	kmsHandler := NewKMSHandler(store, userStore, hsm)
 
+	config := crypto.NewDefaultMasterKeyConfig()
+
+	kmsHandler := NewKMSHandler(
+		store,
+		userStore,
+		hsm,
+		*config,
+	)
 	// Create middleware
 	encryptionMiddleware := middleware.NewEncryptionMiddleware(securityService)
 
@@ -142,7 +150,7 @@ func (s *Server) setupRoutes() {
 					keyrings.GET("/:keyringId", s.kmsHandler.GetKeyring)
 
 					// 🔑 CryptoKey routes
-					keys := keyrings.Group("/:keyringId/keys")
+					keys := keyrings.Group("/:keyringId/:tenantId/keys")
 					{
 						keys.POST("", s.kmsHandler.CreateCryptoKey)
 						keys.GET("", s.kmsHandler.ListCryptoKeys)

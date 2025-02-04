@@ -121,7 +121,7 @@ func TestKeyRotationService_CheckAndRotateKeys(t *testing.T) {
 	keyring := &store.KeyRing{
 		ID:        "test-keyring",
 		Name:      "Test KeyRing",
-		Tenant:    "test-tenant",
+		Owner:     "test-tenant",
 		CreatedAt: time.Now(),
 	}
 
@@ -129,7 +129,7 @@ func TestKeyRotationService_CheckAndRotateKeys(t *testing.T) {
 	needsRotation := &store.Key{
 		ID:             "needs-rotation",
 		KeyRing:        keyring.ID,
-		Tenant:         "test-tenant",
+		Owner:          "test-tenant",
 		Algorithm:      "AES-256-GCM",
 		Purpose:        "ENCRYPT_DECRYPT",
 		State:          "ENABLED",
@@ -242,10 +242,10 @@ func (m *mockKMSStore) CreateKeyRing(ctx context.Context, keyring *store.KeyRing
 	return nil
 }
 
-func (m *mockKMSStore) ListKeyRings(ctx context.Context, tenant string) ([]*store.KeyRing, error) {
+func (m *mockKMSStore) ListKeyRings(ctx context.Context, owner string) ([]*store.KeyRing, error) {
 	var result []*store.KeyRing
 	for _, kr := range m.keyrings {
-		if kr.Tenant == tenant {
+		if kr.Owner == owner {
 			result = append(result, kr)
 		}
 	}

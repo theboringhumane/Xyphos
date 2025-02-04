@@ -245,3 +245,26 @@ func (h *softwareHSM) GenerateKey(ctx context.Context, algorithm string) ([]byte
 		return nil, ErrInvalidAlgorithm
 	}
 }
+
+// 🔑 GenerateKeyPair generates a new public/private key pair using ECDSA-P256
+func (h *softwareHSM) GenerateKeyPair() ([]byte, []byte, error) {
+	// 🎯 Generate an ECDSA-P256 private key (the basis for the key pair)
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to generate ECDSA-P256 key pair: %w", err)
+	}
+
+	// 🛡 Marshal the private key into DER format
+	privBytes, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal ECDSA-P256 private key: %w", err)
+	}
+
+	// 🔓 Derive and marshal the public key from the generated private key
+	pubBytes, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal ECDSA-P256 public key: %w", err)
+	}
+
+	return pubBytes, privBytes, nil
+}

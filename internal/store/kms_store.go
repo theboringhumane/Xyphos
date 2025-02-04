@@ -23,7 +23,7 @@ type KMSStore interface {
 
 	// Keyring operations
 	CreateKeyRing(ctx context.Context, keyring *KeyRing) error
-	ListKeyRings(ctx context.Context, tenant string) ([]*KeyRing, error)
+	ListKeyRings(ctx context.Context, owner string) ([]*KeyRing, error)
 	GetKeyRing(ctx context.Context, id string) (*KeyRing, error)
 	DeleteKeyRing(ctx context.Context, id string) error
 

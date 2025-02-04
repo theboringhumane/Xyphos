@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"xyphos/internal/auth"
+	"xyphos/internal/crypto"
 	"xyphos/internal/hsm"
 	"xyphos/internal/store"
 
@@ -12,21 +13,21 @@ import (
 
 // 🔐 CryptoHandler handles cryptographic operations
 type CryptoHandler struct {
-	keyStore       store.Store
-	hsmService     hsm.Service
-	keyHandler     *KeyHandler
-	keyringHandler *KeyringHandler
-	masterKey      []byte // Store master key during initialization
+	keyStore         store.Store
+	hsmService       hsm.Service
+	keyHandler       *KeyHandler
+	keyringHandler   *KeyringHandler
+	masterKeyManager *crypto.LocationMasterKeyManager
 }
 
 // 🆕 NewCryptoHandler creates a new crypto handler
-func NewCryptoHandler(keyStore store.Store, hsmService hsm.Service, keyHandler *KeyHandler, keyringHandler *KeyringHandler, masterKey []byte) *CryptoHandler {
+func NewCryptoHandler(keyStore store.Store, hsmService hsm.Service, keyHandler *KeyHandler, keyringHandler *KeyringHandler, masterKeyManager *crypto.LocationMasterKeyManager) *CryptoHandler {
 	return &CryptoHandler{
-		keyStore:       keyStore,
-		hsmService:     hsmService,
-		keyHandler:     keyHandler,
-		keyringHandler: keyringHandler,
-		masterKey:      masterKey,
+		keyStore:         keyStore,
+		hsmService:       hsmService,
+		keyHandler:       keyHandler,
+		keyringHandler:   keyringHandler,
+		masterKeyManager: masterKeyManager,
 	}
 }
 
@@ -54,6 +55,7 @@ func (h *CryptoHandler) HandleEncrypt(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
 		return
 	}
+
 	tenant := claims.(*auth.Claims).Tenant
 
 	// Find keyring by name
@@ -83,6 +85,7 @@ func (h *CryptoHandler) HandleEncrypt(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "key has no versions"})
 		return
 	}
+
 	currentVersion := key.Versions[len(key.Versions)-1]
 
 	// Decode plaintext from base64
@@ -92,8 +95,22 @@ func (h *CryptoHandler) HandleEncrypt(c *gin.Context) {
 		return
 	}
 
+	// get location from request
+	location := c.Param("location")
+	if location == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing location"})
+		return
+	}
+
+	// Get master key
+	masterKey, err := h.masterKeyManager.GetLocationMasterKey(location)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get master key"})
+		return
+	}
+
 	// Unwrap the key using HSM's master key
-	keyMaterial, err := h.hsmService.UnwrapKey(h.masterKey, currentVersion.EncryptedKey)
+	keyMaterial, err := h.hsmService.UnwrapKey(masterKey, currentVersion.EncryptedKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unwrap key"})
 		return
@@ -192,8 +209,22 @@ func (h *CryptoHandler) HandleDecrypt(c *gin.Context) {
 		return
 	}
 
+	// get location from request
+	location := c.Param("location")
+	if location == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing location"})
+		return
+	}
+
+	// Get master key
+	masterKey, err := h.masterKeyManager.GetLocationMasterKey(location)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get master key"})
+		return
+	}
+
 	// Unwrap the key using HSM's master key
-	keyMaterial, err := h.hsmService.UnwrapKey(h.masterKey, keyVersion.EncryptedKey)
+	keyMaterial, err := h.hsmService.UnwrapKey(masterKey, keyVersion.EncryptedKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unwrap key"})
 		return

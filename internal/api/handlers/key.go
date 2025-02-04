@@ -8,6 +8,7 @@ import (
 
 	"xyphos/internal/api/services"
 	"xyphos/internal/auth"
+	"xyphos/internal/crypto"
 	"xyphos/internal/hsm"
 	"xyphos/internal/store"
 
@@ -16,19 +17,19 @@ import (
 
 // 🔑 KeyHandler handles key operations
 type KeyHandler struct {
-	keyStore       store.Store
-	hsmService     hsm.Service
-	keyringHandler *KeyringHandler
-	masterKey      []byte // Store master key during initialization
+	keyStore         store.Store
+	hsmService       hsm.Service
+	keyringHandler   *KeyringHandler
+	masterKeyManager *crypto.LocationMasterKeyManager
 }
 
 // 🆕 NewKeyHandler creates a new key handler
-func NewKeyHandler(keyStore store.Store, hsmService hsm.Service, keyringHandler *KeyringHandler, masterKey []byte) *KeyHandler {
+func NewKeyHandler(keyStore store.Store, hsmService hsm.Service, keyringHandler *KeyringHandler, masterKeyManager *crypto.LocationMasterKeyManager) *KeyHandler {
 	return &KeyHandler{
-		keyStore:       keyStore,
-		hsmService:     hsmService,
-		keyringHandler: keyringHandler,
-		masterKey:      masterKey,
+		keyStore:         keyStore,
+		hsmService:       hsmService,
+		keyringHandler:   keyringHandler,
+		masterKeyManager: masterKeyManager,
 	}
 }
 
@@ -57,6 +58,7 @@ func (h *KeyHandler) HandleCreate(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
 		return
 	}
+
 	tenant := claims.(*auth.Claims).Tenant
 
 	// Find keyring by name
@@ -77,8 +79,22 @@ func (h *KeyHandler) HandleCreate(c *gin.Context) {
 		return
 	}
 
+	// get location from request
+	location := c.Param("location")
+	if location == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing location"})
+		return
+	}
+
+	// Get master key
+	masterKey, err := h.masterKeyManager.GetLocationMasterKey(location)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get master key"})
+		return
+	}
+
 	// Wrap key material with master key
-	wrappedKey, err := h.hsmService.WrapKey(h.masterKey, keyMaterial)
+	wrappedKey, err := h.hsmService.WrapKey(masterKey, keyMaterial)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to wrap key"})
 		return
@@ -171,6 +187,94 @@ func (h *KeyHandler) HandleList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// 🔄 HandleRotate handles key rotation
+func (h *KeyHandler) HandleRotate(c *gin.Context) {
+	keyID := c.Param("id")
+	if keyID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing key id"})
+		return
+	}
+
+	// Get tenant from claims
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
+		return
+	}
+	tenant := claims.(*auth.Claims).Tenant
+
+	// Get existing key
+	key, err := h.keyStore.GetKey(context.Background(), keyID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get key"})
+		return
+	}
+	if key == nil || key.Tenant != tenant {
+		c.JSON(http.StatusNotFound, gin.H{"error": "key not found"})
+		return
+	}
+
+	// Generate new key material
+	keyMaterial, err := h.hsmService.GenerateKeyMaterial(key.Algorithm)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate key material"})
+		return
+	}
+
+	// get location from request
+	location := c.Param("location")
+	if location == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing location"})
+		return
+	}
+
+	// Get master key
+	masterKey, err := h.masterKeyManager.GetLocationMasterKey(location)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get master key"})
+		return
+	}
+
+	// Wrap new key material
+	wrappedKey, err := h.hsmService.WrapKey(masterKey, keyMaterial)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to wrap key"})
+		return
+	}
+
+	// Create new version
+	newVersion := store.KeyVersion{
+		Version:      key.CurrentVersion + 1,
+		State:        "ENABLED",
+		CreatedAt:    time.Now(),
+		RotationTime: time.Now().Add(time.Duration(24) * time.Hour), // Default 24h rotation period
+		EncryptedKey: wrappedKey,
+	}
+
+	// Update previous version state to DEPRECATED
+	for i := range key.Versions {
+		if key.Versions[i].Version == key.CurrentVersion {
+			key.Versions[i].State = "DEPRECATED"
+			break
+		}
+	}
+
+	// Add new version and update current version
+	key.Versions = append(key.Versions, newVersion)
+	key.CurrentVersion = newVersion.Version
+
+	// Save updated key
+	if err := h.keyStore.UpdateKey(context.Background(), key); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update key"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "Key rotated successfully",
+		"currentVersion": newVersion.Version,
+	})
 }
 
 // Helper function to find active key for purpose

@@ -22,16 +22,16 @@ func (s *BadgerStore) CreateKeyRing(ctx context.Context, keyring *KeyRing) error
 			return fmt.Errorf("failed to store keyring: %w", err)
 		}
 
-		// Store in tenant's keyring list
-		return txn.Set([]byte(fmt.Sprintf("tenant:%s:keyrings:%s", keyring.Tenant, keyring.ID)), []byte{1})
+		// Store in owner's keyring list
+		return txn.Set([]byte(fmt.Sprintf("owner:%s:keyrings:%s", keyring.Owner, keyring.ID)), []byte{1})
 	})
 }
 
-func (s *BadgerStore) ListKeyRings(ctx context.Context, tenant string) ([]*KeyRing, error) {
+func (s *BadgerStore) ListKeyRings(ctx context.Context, owner string) ([]*KeyRing, error) {
 	var keyrings []*KeyRing
 
 	err := s.db.View(func(txn *badger.Txn) error {
-		prefix := []byte(fmt.Sprintf("tenant:%s:keyrings:", tenant))
+		prefix := []byte(fmt.Sprintf("owner:%s:keyrings:", owner))
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 
@@ -105,9 +105,9 @@ func (s *BadgerStore) DeleteKeyRing(ctx context.Context, id string) error {
 			return fmt.Errorf("failed to unmarshal keyring: %w", err)
 		}
 
-		// Delete from tenant's keyring list
-		if err := txn.Delete([]byte(fmt.Sprintf("tenant:%s:keyrings:%s", keyring.Tenant, id))); err != nil {
-			return fmt.Errorf("failed to delete keyring from tenant list: %w", err)
+		// Delete from owner's keyring list
+		if err := txn.Delete([]byte(fmt.Sprintf("owner:%s:keyrings:%s", keyring.Owner, id))); err != nil {
+			return fmt.Errorf("failed to delete keyring from owner list: %w", err)
 		}
 
 		// Delete keyring

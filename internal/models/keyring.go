@@ -11,6 +11,7 @@ type Keyring struct {
 	ID          string    `json:"id"`
 	ProjectID   string    `json:"projectId"`
 	LocationID  string    `json:"locationId"`
+	Owner       string    `json:"owner"`
 	Name        string    `json:"name"`
 	Description string    `json:"description,omitempty"`
 	CreatedAt   time.Time `json:"createdAt"`
@@ -18,7 +19,7 @@ type Keyring struct {
 }
 
 // NewKeyring creates a new keyring with default values
-func NewKeyring(projectID, locationID, name, description string) *Keyring {
+func NewKeyring(projectID, locationID, name, description, owner string) *Keyring {
 	now := time.Now()
 	return &Keyring{
 		ID:          uuid.New().String(),
@@ -28,5 +29,6 @@ func NewKeyring(projectID, locationID, name, description string) *Keyring {
 		Description: description,
 		CreatedAt:   now,
 		UpdatedAt:   now,
+		Owner:       owner,
 	}
 }

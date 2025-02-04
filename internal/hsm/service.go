@@ -30,6 +30,9 @@ type Service interface {
 	// GenerateKey generates a new key of the specified algorithm
 	GenerateKey(ctx context.Context, algorithm string) ([]byte, error)
 
+	// GenerateKeyPair generates a new public/private key pair
+	GenerateKeyPair() ([]byte, []byte, error)
+
 	// Close closes the HSM service
 	Close() error
 }

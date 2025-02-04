@@ -15,16 +15,19 @@ type Store interface {
 
 // 💍 KeyRing represents a collection of cryptographic keys
 type KeyRing struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Tenant    string    `json:"tenant"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string    `json:"id"`
+	ProjectID  string    `json:"project_id"`
+	LocationID string    `json:"location_id"`
+	Name       string    `json:"name"`
+	Owner      string    `json:"owner"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 // 🔑 Key represents a cryptographic key
 type Key struct {
 	ID             string       `json:"id"`
 	KeyRing        string       `json:"keyring"`
+	Owner          string       `json:"owner"`
 	Tenant         string       `json:"tenant"`
 	Algorithm      string       `json:"algorithm"`
 	Purpose        string       `json:"purpose"`

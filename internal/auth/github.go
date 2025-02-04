@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"time"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
@@ -24,13 +24,6 @@ type GitHubConfig struct {
 	ClientSecret string
 	RedirectURL  string
 	Scopes       []string
-}
-
-// 🔑 GitHubAuth handles GitHub OAuth authentication
-type GitHubAuth struct {
-	config     *oauth2.Config
-	store      store.UserStore
-	httpClient *http.Client
 }
 
 // 🔐 GitHub OAuth configuration
@@ -56,6 +49,7 @@ type GitHubUser struct {
 
 // CustomClaims 🎟️ Custom claims for JWT
 type CustomClaims struct {
+	ID       string `json:"id"`
 	GithubID int    `json:"github_id"`
 	Email    string `json:"email"`
 	jwt.RegisteredClaims
@@ -122,6 +116,7 @@ func (h *Handler) handleGitHubCallback(c *gin.Context) {
 	if err != nil {
 		if user == nil {
 			user = &models.User{
+				ID:        generateID(),
 				GithubID:  githubUser.ID,
 				Email:     githubUser.Email,
 				Name:      githubUser.Name,
@@ -130,8 +125,6 @@ func (h *Handler) handleGitHubCallback(c *gin.Context) {
 			}
 		}
 	} else {
-		// 📝 Create or update user
-		// 📝 Create or update user
 		user.Email = githubUser.Email
 		user.Name = githubUser.Name
 		user.Username = githubUser.Login
@@ -211,6 +204,7 @@ func getGitHubUser(token string) (*GitHubUser, error) {
 // 🎟️ Generate JWT token
 func generateJWT(user *models.User) (string, error) {
 	claims := &CustomClaims{
+		ID:       user.ID,
 		GithubID: user.GithubID,
 		Email:    user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -253,13 +247,13 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token " + err.Error()})
 			c.Abort()
 			return
 		}
 
 		if !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is not valid"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is not valid "})
 			c.Abort()
 			return
 		}
@@ -284,129 +278,7 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-// 🆕 NewGitHubAuth creates a new GitHub authentication handler
-func NewGitHubAuth(cfg GitHubConfig, store store.UserStore) *GitHubAuth {
-	config := &oauth2.Config{
-		ClientID:     cfg.ClientID,
-		ClientSecret: cfg.ClientSecret,
-		RedirectURL:  cfg.RedirectURL,
-		Scopes:       cfg.Scopes,
-		Endpoint:     github.Endpoint,
-	}
-
-	return &GitHubAuth{
-		config:     config,
-		store:      store,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
-	}
-}
-
-// 🔗 GetAuthURL returns the GitHub OAuth authorization URL
-func (g *GitHubAuth) GetAuthURL(state string) string {
-	return g.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
-}
-
-// 🔄 ExchangeCode exchanges the OAuth code for a token and user information
-func (g *GitHubAuth) ExchangeCode(ctx context.Context, code string) (*models.User, error) {
-	// Exchange code for token
-	token, err := g.config.Exchange(ctx, code)
-	if err != nil {
-		return nil, fmt.Errorf("failed to exchange code: %w", err)
-	}
-
-	// Get GitHub user information
-	githubUser, err := g.getGitHubUser(ctx, token.AccessToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get GitHub user: %w", err)
-	}
-
-	// Check if user exists
-	user, err := g.store.GetUserByGithubID(ctx, githubUser.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check existing user: %w", err)
-	}
-
-	if user == nil {
-		// Create new user
-		user = &models.User{
-			ID:        generateID(),
-			GithubID:  githubUser.ID,
-			Username:  githubUser.Login,
-			Name:      githubUser.Name,
-			Email:     githubUser.Email,
-			AvatarURL: githubUser.AvatarURL,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-
-		if err := g.store.CreateUser(ctx, user); err != nil {
-			return nil, fmt.Errorf("failed to create user: %w", err)
-		}
-	} else {
-		// Update existing user
-		user.Username = githubUser.Login
-		user.Name = githubUser.Name
-		user.Email = githubUser.Email
-		user.AvatarURL = githubUser.AvatarURL
-		user.UpdatedAt = time.Now()
-
-		if err := g.store.UpdateUser(ctx, user); err != nil {
-			return nil, fmt.Errorf("failed to update user: %w", err)
-		}
-	}
-
-	return user, nil
-}
-
-// 👤 getGitHubUser fetches user information from GitHub API
-func (g *GitHubAuth) getGitHubUser(ctx context.Context, accessToken string) (*GitHubUser, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("token %s", accessToken))
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-	resp, err := g.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user info: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("GitHub API error: %s: %s", resp.Status, string(body))
-	}
-
-	var user GitHubUser
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return nil, fmt.Errorf("failed to decode user info: %w", err)
-	}
-
-	return &user, nil
-}
-
-// 🔒 ValidateState validates the OAuth state parameter
-func (g *GitHubAuth) ValidateState(state string, expectedState string) bool {
-	return state == expectedState
-}
-
-// 🔄 RefreshToken refreshes the OAuth access token
-func (g *GitHubAuth) RefreshToken(ctx context.Context, refreshToken string) (*oauth2.Token, error) {
-	token := &oauth2.Token{
-		RefreshToken: refreshToken,
-	}
-
-	newToken, err := g.config.TokenSource(ctx, token).Token()
-	if err != nil {
-		return nil, fmt.Errorf("failed to refresh token: %w", err)
-	}
-
-	return newToken, nil
-}
-
 // 🆔 generateID generates a unique ID for new users
 func generateID() string {
-	return fmt.Sprintf("usr_%d", time.Now().UnixNano())
+	return uuid.New().String()
 }

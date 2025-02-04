@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,13 +13,15 @@ import (
 	"xyphos/internal/store"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"golang.org/x/time/rate"
 )
 
 // 🔑 ClientHandler handles client configuration operations
 type ClientHandler struct {
-	userStore store.UserStore
-	limiter   *rate.Limiter
+	userStore     store.UserStore
+	limiter       *rate.Limiter
+	cryptoHandler *CryptoHandler
 }
 
 // 🆕 Create new client handler
@@ -98,6 +102,16 @@ func (h *ClientHandler) CreateClientConfig(c *gin.Context) {
 		return
 	}
 
+	// create public/private key pair
+	publicKey, privateKey, err := h.cryptoHandler.hsmService.GenerateKeyPair()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create key pair"})
+		return
+	}
+
+	publicKeyString := base64.StdEncoding.EncodeToString(publicKey)
+	privateKeyString := base64.StdEncoding.EncodeToString(privateKey)
+
 	// Create client configuration
 	config := &models.ClientConfig{
 		UserID:      user.(*models.User).ID,
@@ -106,6 +120,18 @@ func (h *ClientHandler) CreateClientConfig(c *gin.Context) {
 		ExpiresAt:   time.Now().Add(duration),
 		Status:      models.ClientConfigStatusActive,
 		LastUsedAt:  time.Now(),
+		PublicKey:   publicKeyString,
+		PrivateKey:  privateKeyString,
+		ClientID:    uuid.New().String(),
+		ClientSecret: func() string {
+			// 🔐 Generate a secure random client secret using crypto/rand
+			secret := make([]byte, 32) // 256-bit secret
+			if _, err := rand.Read(secret); err != nil {
+				// 🚨 Panic if secure random generation fails (handle as needed in production)
+				panic("failed to generate secure client secret")
+			}
+			return base64.StdEncoding.EncodeToString(secret)
+		}(),
 	}
 
 	if err := h.userStore.CreateClientConfig(context.Background(), config); err != nil {
@@ -115,11 +141,14 @@ func (h *ClientHandler) CreateClientConfig(c *gin.Context) {
 
 	// Remove sensitive data from response
 	response := gin.H{
-		"name":        config.Name,
-		"permissions": config.Permissions,
-		"expiresAt":   config.ExpiresAt,
-		"clientId":    config.ClientID,
-		"status":      config.Status,
+		"name":         config.Name,
+		"permissions":  config.Permissions,
+		"expiresAt":    config.ExpiresAt,
+		"clientId":     config.ClientID,
+		"status":       config.Status,
+		"publicKey":    config.PublicKey,
+		"privateKey":   config.PrivateKey,
+		"clientSecret": config.ClientSecret,
 	}
 
 	c.JSON(http.StatusCreated, response)
@@ -217,4 +246,38 @@ func (h *ClientHandler) GetClientConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// 🔑 Revoke client configuration
+func (h *ClientHandler) RevokeClientConfig(c *gin.Context) {
+	// Apply rate limiting
+	if !h.limiter.Allow() {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit exceeded"})
+		return
+	}
+
+	clientID := c.Param("clientId")
+	if clientID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Client ID is required"})
+		return
+	}
+
+	config, err := h.userStore.GetClientConfigByClientID(context.Background(), clientID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get client configuration"})
+		return
+	}
+
+	if config == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Client configuration not found"})
+		return
+	}
+
+	config.Status = models.ClientConfigStatusRevoked
+	if err := h.userStore.UpdateClientConfig(context.Background(), config); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke client configuration"})
+		return
+	}
+
+	c.JSON(http.StatusOK, config)
 }

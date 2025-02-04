@@ -42,7 +42,7 @@ func TestKeyRingOperations(t *testing.T) {
 	keyring := &KeyRing{
 		ID:        "test-keyring",
 		Name:      "Test Keyring",
-		Tenant:    "test-tenant",
+		Owner:     "test-tenant",
 		CreatedAt: time.Now(),
 	}
 
@@ -64,7 +64,7 @@ func TestKeyRingOperations(t *testing.T) {
 	}
 
 	// Test listing
-	keyrings, err := store.ListKeyRings(ctx, keyring.Tenant)
+	keyrings, err := store.ListKeyRings(ctx, keyring.Owner)
 	if err != nil {
 		t.Fatalf("Failed to list keyrings: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestKeyOperations(t *testing.T) {
 	key := &Key{
 		ID:             "test-key",
 		KeyRing:        "test-keyring",
-		Tenant:         "test-tenant",
+		Owner:          "test-tenant",
 		Algorithm:      "AES-256",
 		Purpose:        "ENCRYPT_DECRYPT",
 		State:          "ENABLED",

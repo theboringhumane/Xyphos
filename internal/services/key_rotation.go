@@ -87,7 +87,7 @@ func (s *KeyRotationService) checkAndRotateKeys(ctx context.Context) error {
 
 		for _, keyring := range keyrings {
 			// Get all keys in the keyring for the tenant
-			keys, err := s.store.ListKeys(ctx, keyring.ID, keyring.Tenant)
+			keys, err := s.store.ListKeys(ctx, keyring.ID, keyring.Owner)
 			if err != nil {
 				log.Printf("❌ Error listing keys for keyring %s: %v", keyring.ID, err)
 				continue

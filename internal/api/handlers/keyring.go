@@ -35,16 +35,17 @@ func (h *KeyringHandler) HandleCreate(c *gin.Context) {
 		return
 	}
 
-	// Get tenant from claims
+	// Get owner from claims
 	claims, exists := c.Get("claims")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
 		return
 	}
-	tenant := claims.(*auth.Claims).Tenant
+
+	owner := claims.(*auth.Claims).Tenant
 
 	// Check if keyring with this name already exists for tenant
-	existingKeyrings, err := h.keyStore.ListKeyRings(context.Background(), tenant)
+	existingKeyrings, err := h.keyStore.ListKeyRings(context.Background(), owner)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check existing keyrings"})
 		return
@@ -56,12 +57,27 @@ func (h *KeyringHandler) HandleCreate(c *gin.Context) {
 		}
 	}
 
+	// get projectID from context
+	projectID := c.Param("projectId")
+	if projectID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Project ID is required"})
+		return
+	}
+
+	locationID := c.Param("locationId")
+	if locationID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Location ID is required"})
+		return
+	}
+
 	// Create a new keyring
 	keyring := &store.KeyRing{
-		ID:        services.GenerateID(),
-		Name:      req.Name,
-		Tenant:    tenant,
-		CreatedAt: time.Now(),
+		ID:         services.GenerateID(),
+		Name:       req.Name,
+		Owner:      owner,
+		ProjectID:  projectID,
+		LocationID: locationID,
+		CreatedAt:  time.Now(),
 	}
 
 	if err := h.keyStore.CreateKeyRing(context.Background(), keyring); err != nil {
@@ -70,6 +86,7 @@ func (h *KeyringHandler) HandleCreate(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
+		"id":        keyring.ID,
 		"name":      keyring.Name,
 		"createdAt": keyring.CreatedAt,
 	})
