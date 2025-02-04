@@ -25,7 +25,7 @@ type ClientConfig struct {
 	ClientID     string     `json:"client_id"`     // Unique client identifier
 	ClientSecret string     `json:"client_secret"` // Secret for client authentication
 	PublicKey    string     `json:"public_key"`    // Client's public key for request encryption
-	PrivateKey   string     `json:"-"`             // Client's private key (only stored temporarily)
+	PrivateKey   string     `json:"-"`             // Client's private key (only sent once during creation)
 	KeyAlgorithm string     `json:"key_algorithm"` // Algorithm used for key pair (e.g., "RSA-4096")
 	Permissions  []string   `json:"permissions"`   // read:keys, write:keys, etc.
 	CreatedAt    time.Time  `json:"created_at"`
@@ -34,6 +34,11 @@ type ClientConfig struct {
 	Status       string     `json:"status"`       // active, revoked, expired
 	IPWhitelist  []string   `json:"ip_whitelist"` // Optional IP restrictions
 	RevokedAt    *time.Time `json:"revoked_at,omitempty"`
+
+	// 🔐 Request Encryption Settings
+	RequestEncryption bool   `json:"request_encryption"` // Whether to enforce request encryption
+	EncryptionAlg     string `json:"encryption_alg"`     // RSA-OAEP-256
+	SigningAlg        string `json:"signing_alg"`        // RSA-PSS-SHA256
 }
 
 // 🔐 ClientConfigStatus represents the possible states of a client configuration

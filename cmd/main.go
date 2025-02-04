@@ -23,6 +23,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -32,6 +33,8 @@ import (
 	"xyphos/internal/backup"
 	"xyphos/internal/hsm"
 	"xyphos/internal/store"
+
+	"github.com/joho/godotenv"
 )
 
 // 🚀 Main entry point for the Xyphos server
@@ -51,6 +54,16 @@ func main() {
 		log.Fatalf("Failed to initialize data store: %v", err)
 	}
 	defer dataStore.Close()
+
+	// check if .env file exists
+	if _, err := os.Stat(".env"); os.IsNotExist(err) {
+		fmt.Println("No .env file found, skipping environment variable loading")
+	} else {
+		fmt.Println("Loading environment variables from .env file")
+		if err := godotenv.Load(); err != nil {
+			log.Fatalf("Failed to load environment variables: %v", err)
+		}
+	}
 
 	// 💾 Initialize backup service
 	backupService, err := backup.NewBackupService(backup.BackupConfig{

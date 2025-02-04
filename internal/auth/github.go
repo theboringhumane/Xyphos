@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"lambda-kms/internal/models"
-	"lambda-kms/internal/store"
+	"xyphos/internal/models"
+	"xyphos/internal/store"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -76,6 +76,9 @@ func NewAuthHandler(userStore store.UserStore) *Handler {
 // InitGitHubAuthRoutes 🔄 Initialize GitHub auth routes
 func (h *Handler) InitGitHubAuthRoutes(r *gin.Engine) {
 	auth := r.Group("/auth/github")
+	githubOAuthConfig.ClientID = os.Getenv("GITHUB_CLIENT_ID")
+	githubOAuthConfig.ClientSecret = os.Getenv("GITHUB_CLIENT_SECRET")
+	githubOAuthConfig.RedirectURL = os.Getenv("GITHUB_REDIRECT_URL")
 	{
 		auth.GET("/login", h.handleGitHubLogin)
 		auth.GET("/callback", h.handleGitHubCallback)
@@ -86,6 +89,7 @@ func (h *Handler) InitGitHubAuthRoutes(r *gin.Engine) {
 // 📝 Handle GitHub login
 func (h *Handler) handleGitHubLogin(c *gin.Context) {
 	url := githubOAuthConfig.AuthCodeURL("state")
+	fmt.Println("Redirecting to GitHub login URL:", url)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
@@ -114,21 +118,20 @@ func (h *Handler) handleGitHubCallback(c *gin.Context) {
 
 	// 🔍 Check if user exists
 	user, err := h.userStore.GetUserByGithubID(context.Background(), githubUser.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check user"})
-		return
-	}
 
-	// 📝 Create or update user
-	if user == nil {
-		user = &models.User{
-			GithubID:  githubUser.ID,
-			Email:     githubUser.Email,
-			Name:      githubUser.Name,
-			Username:  githubUser.Login,
-			AvatarURL: githubUser.AvatarURL,
+	if err != nil {
+		if user == nil {
+			user = &models.User{
+				GithubID:  githubUser.ID,
+				Email:     githubUser.Email,
+				Name:      githubUser.Name,
+				Username:  githubUser.Login,
+				AvatarURL: githubUser.AvatarURL,
+			}
 		}
 	} else {
+		// 📝 Create or update user
+		// 📝 Create or update user
 		user.Email = githubUser.Email
 		user.Name = githubUser.Name
 		user.Username = githubUser.Login
@@ -147,9 +150,8 @@ func (h *Handler) handleGitHubCallback(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
-
-	// 🔄 Redirect to frontend with token
-	c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s?token=%s", os.Getenv("FRONTEND_URL"), jwtToken))
+	// return the token
+	c.JSON(http.StatusOK, gin.H{"token": jwtToken})
 }
 
 // 👤 Handle GitHub user info
