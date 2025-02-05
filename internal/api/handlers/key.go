@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"xyphos/internal/api/services"
-	"xyphos/internal/auth"
 	"xyphos/internal/crypto"
 	"xyphos/internal/hsm"
+	"xyphos/internal/models"
 	"xyphos/internal/store"
 
 	"github.com/gin-gonic/gin"
@@ -35,72 +35,125 @@ func NewKeyHandler(keyStore store.Store, hsmService hsm.Service, keyringHandler 
 
 // 🔑 HandleCreate handles key creation
 func (h *KeyHandler) HandleCreate(c *gin.Context) {
-	keyringName := c.Param("name")
+	// 📝 Log start of key creation
+	fmt.Println("🔄 Starting key creation process")
+
+	keyringName := c.Param("keyringId")
+
 	if keyringName == "" {
+		fmt.Println("❌ Missing keyring name")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing keyring name"})
 		return
 	}
 
+	fmt.Printf("📋 Using keyring: %s\n", keyringName)
+
 	var req struct {
+		Name           string `json:"name" binding:"required"`
 		Algorithm      string `json:"algorithm" binding:"required"`
 		Purpose        string `json:"purpose" binding:"required"`
 		RotationPeriod int    `json:"rotation_period" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("❌ Invalid request body: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Get tenant from claims
-	claims, exists := c.Get("claims")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
+	fmt.Printf("📋 Request params - Algorithm: %s, Purpose: %s, Rotation Period: %d\n",
+		req.Algorithm, req.Purpose, req.RotationPeriod)
+
+	owner, ok := c.Get("user")
+	if !ok {
+		fmt.Println("❌ Missing user")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing user"})
 		return
 	}
 
-	tenant := claims.(*auth.Claims).Tenant
+	user := owner.(*models.User)
+
+	// get tenant from request
+	tenant := c.Param("tenantId")
+	if tenant == "" {
+		fmt.Println("❌ Missing tenant")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing tenant"})
+		return
+	}
+
+	fmt.Printf("👤 Using tenant: %s\n", tenant)
 
 	// Find keyring by name
-	keyring, err := h.keyringHandler.findByName(tenant, keyringName)
+	fmt.Println("🔍 Finding keyring")
+
+	keyring, err := h.keyringHandler.findByName(user.ID, keyringName)
 	if err != nil {
+		fmt.Printf("❌ Failed to find keyring: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find keyring"})
 		return
 	}
+
 	if keyring == nil {
+		fmt.Println("❌ Keyring not found")
 		c.JSON(http.StatusNotFound, gin.H{"error": "keyring not found"})
 		return
 	}
 
+	fmt.Printf("✅ Found keyring with ID: %s\n", keyring.ID)
+
+	// CHECK IF KEY EXISTS WITH SAME NAME
+	key_exists, err := h.keyStore.GetKeyByName(context.Background(), req.Name)
+	if err != nil {
+		fmt.Println("✅ Key does not exist", err)
+	}
+
+	if key_exists != nil {
+		fmt.Println("❌ Key already exists")
+		c.JSON(http.StatusConflict, gin.H{"error": "key already exists"})
+		return
+	}
+
 	// Generate key material
+	fmt.Println("🔐 Generating key material")
 	keyMaterial, err := h.hsmService.GenerateKeyMaterial(req.Algorithm)
 	if err != nil {
+		fmt.Printf("❌ Failed to generate key material: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate key material"})
 		return
 	}
+	fmt.Println("✅ Key material generated successfully")
 
 	// get location from request
-	location := c.Param("location")
+	location := c.Param("locationId")
 	if location == "" {
+		fmt.Println("❌ Missing location")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing location"})
 		return
 	}
+	fmt.Printf("📍 Using location: %s\n", location)
 
 	// Get master key
+	fmt.Println("🔑 Getting master key")
 	masterKey, err := h.masterKeyManager.GetLocationMasterKey(location)
 	if err != nil {
+		fmt.Printf("❌ Failed to get master key: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get master key"})
 		return
 	}
+	fmt.Println("✅ Master key retrieved successfully")
 
 	// Wrap key material with master key
+	fmt.Println("🔒 Wrapping key material")
 	wrappedKey, err := h.hsmService.WrapKey(masterKey, keyMaterial)
 	if err != nil {
+		fmt.Printf("❌ Failed to wrap key: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to wrap key"})
 		return
 	}
+	fmt.Println("✅ Key wrapped successfully")
 
 	// Create initial version
+	fmt.Println("📝 Creating initial key version")
 	initialVersion := store.KeyVersion{
 		Version:      1,
 		State:        "ENABLED",
@@ -110,50 +163,64 @@ func (h *KeyHandler) HandleCreate(c *gin.Context) {
 	}
 
 	// Create key record
+	fmt.Println("📝 Creating key record")
 	key := &store.Key{
 		ID:             services.GenerateID(),
-		KeyRing:        keyring.ID,
 		Tenant:         tenant,
+		Name:           req.Name,
 		Algorithm:      req.Algorithm,
 		Purpose:        req.Purpose,
-		State:          "ENABLED",
 		CreatedAt:      time.Now(),
 		Versions:       []store.KeyVersion{initialVersion},
 		CurrentVersion: 1,
+		KeyRing:        keyringName,
+		NextRotation:   initialVersion.RotationTime,
+		RotationPeriod: time.Duration(req.RotationPeriod) * time.Second,
 	}
 
 	if err := h.keyStore.CreateKey(context.Background(), key); err != nil {
+		fmt.Printf("❌ Failed to create key: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create key"})
 		return
 	}
 
+	fmt.Printf("✅ Key created successfully with ID: %s\n", key.ID)
+
 	c.JSON(http.StatusCreated, gin.H{
 		"algorithm":      key.Algorithm,
 		"purpose":        key.Purpose,
-		"state":          key.State,
 		"createdAt":      key.CreatedAt,
 		"currentVersion": "1",
 	})
+	fmt.Println("✅ Key creation process completed")
 }
 
 // 📋 HandleList handles listing keys in a keyring
 func (h *KeyHandler) HandleList(c *gin.Context) {
-	keyringName := c.Param("name")
+
+	user, ok := c.Get("user")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user"})
+		return
+	}
+
+	userID := user.(*models.User).ID
+
+	keyringName := c.Param("keyringId")
 	if keyringName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing keyring name"})
 		return
 	}
 
-	// Get tenant from claims
-	claims, exists := c.Get("claims")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
+	// get tenant from request
+	tenant := c.Param("tenantId")
+	if tenant == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing tenant"})
 		return
 	}
-	tenant := claims.(*auth.Claims).Tenant
 
 	// Find keyring by name
-	keyring, err := h.keyringHandler.findByName(tenant, keyringName)
+	keyring, err := h.keyringHandler.findByName(userID, keyringName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find keyring"})
 		return
@@ -164,7 +231,7 @@ func (h *KeyHandler) HandleList(c *gin.Context) {
 	}
 
 	// List keys
-	keys, err := h.keyStore.ListKeys(context.Background(), keyring.ID, tenant)
+	keys, err := h.keyStore.ListKeys(context.Background(), keyring.Name, tenant)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list keys"})
 		return
@@ -180,7 +247,6 @@ func (h *KeyHandler) HandleList(c *gin.Context) {
 		response[i] = gin.H{
 			"algorithm":      key.Algorithm,
 			"purpose":        key.Purpose,
-			"state":          key.State,
 			"createdAt":      key.CreatedAt,
 			"currentVersion": currentVersion,
 		}
@@ -197,13 +263,12 @@ func (h *KeyHandler) HandleRotate(c *gin.Context) {
 		return
 	}
 
-	// Get tenant from claims
-	claims, exists := c.Get("claims")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
+	// get tenant from request
+	tenant := c.Param("tenantId")
+	if tenant == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing tenant"})
 		return
 	}
-	tenant := claims.(*auth.Claims).Tenant
 
 	// Get existing key
 	key, err := h.keyStore.GetKey(context.Background(), keyID)
@@ -211,6 +276,7 @@ func (h *KeyHandler) HandleRotate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get key"})
 		return
 	}
+
 	if key == nil || key.Tenant != tenant {
 		c.JSON(http.StatusNotFound, gin.H{"error": "key not found"})
 		return
@@ -278,7 +344,7 @@ func (h *KeyHandler) HandleRotate(c *gin.Context) {
 }
 
 // Helper function to find active key for purpose
-func (h *KeyHandler) findActiveKeyForPurpose(keyringID, tenant, purpose string) (*store.Key, error) {
+func (h *KeyHandler) findActiveKeyForPurpose(keyringID, purpose, tenant string) (*store.Key, error) {
 	keys, err := h.keyStore.ListKeys(context.Background(), keyringID, tenant)
 	if err != nil {
 		return nil, err
@@ -297,4 +363,9 @@ func (h *KeyHandler) findActiveKeyForPurpose(keyringID, tenant, purpose string) 
 		}
 	}
 	return mostRecent, nil
+}
+
+// 🔑 findKey finds a key by ID
+func (h *KeyHandler) findKey(keyID string) (*store.Key, error) {
+	return h.keyStore.GetKey(context.Background(), keyID)
 }

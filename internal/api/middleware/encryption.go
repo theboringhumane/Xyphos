@@ -64,7 +64,7 @@ func (m *EncryptionMiddleware) HandleEncryption() gin.HandlerFunc {
 		// Get client config from context (set by auth middleware)
 		configAny, exists := c.Get("client_config")
 		if !exists {
-			c.Next()
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized request"})
 			return
 		}
 
@@ -120,8 +120,6 @@ func (m *EncryptionMiddleware) HandleEncryption() gin.HandlerFunc {
 					m.sendEncryptedError(c, clientConfig, http.StatusBadRequest, fmt.Sprintf("failed to parse decrypted json body: %v", err))
 					return
 				}
-				// Set the Content-Type to application/json for downstream handlers
-				c.Request.Header.Set("Content-Type", "application/json")
 			}
 
 			// Replace request body with decrypted data
@@ -140,25 +138,18 @@ func (m *EncryptionMiddleware) HandleEncryption() gin.HandlerFunc {
 
 		// Handle response encryption
 		if writer.body != nil {
-			var responseData []byte
+			var encryptedData []byte
 			var err error
 
-			// First encrypt with HSM key if needed
-			if c.GetHeader("X-HSM-Encrypt") == "true" {
-				responseData, err = m.securityService.EncryptWithHSM(writer.body)
+			if c.GetHeader("X-Response-Encrypted") == "true" {
+				// Then encrypt for client transport
+				encryptedData, err = m.securityService.EncryptForClient(clientConfig.PublicKey, writer.body)
 				if err != nil {
-					m.sendEncryptedError(c, clientConfig, http.StatusInternalServerError, fmt.Sprintf("failed to encrypt with HSM: %v", err))
+					m.sendEncryptedError(c, clientConfig, http.StatusInternalServerError, fmt.Sprintf("failed to encrypt response: %v", err))
 					return
 				}
 			} else {
-				responseData = writer.body
-			}
-
-			// Then encrypt for client transport
-			encryptedData, err := m.securityService.EncryptForClient(clientConfig.PublicKey, responseData)
-			if err != nil {
-				m.sendEncryptedError(c, clientConfig, http.StatusInternalServerError, fmt.Sprintf("failed to encrypt response: %v", err))
-				return
+				encryptedData = writer.body
 			}
 
 			// Base64 encode the encrypted data

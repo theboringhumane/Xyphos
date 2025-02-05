@@ -25,7 +25,8 @@ func TestKeyRotationService_Start(t *testing.T) {
 		DefaultLifetime: 30 * 24 * time.Hour,
 	}
 
-	service := NewKeyRotationService(mockStore, mockHSM, config)
+	service, err := NewKeyRotationService(mockStore, mockHSM, config)
+	require.NoError(t, err)
 
 	// Test
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -54,7 +55,8 @@ func TestKeyRotationService_RotateKeyNow(t *testing.T) {
 		DefaultLifetime: 30 * 24 * time.Hour,
 	}
 
-	service := NewKeyRotationService(mockStore, mockHSM, config)
+	service, err := NewKeyRotationService(mockStore, mockHSM, config)
+	require.NoError(t, err)
 
 	// Setup test key
 	testKey := &store.Key{
@@ -63,7 +65,6 @@ func TestKeyRotationService_RotateKeyNow(t *testing.T) {
 		Tenant:         "test-tenant",
 		Algorithm:      "AES-256-GCM",
 		Purpose:        "ENCRYPT_DECRYPT",
-		State:          "ENABLED",
 		CreatedAt:      time.Now(),
 		CurrentVersion: 1,
 		Versions: []store.KeyVersion{
@@ -107,7 +108,8 @@ func TestKeyRotationService_CheckAndRotateKeys(t *testing.T) {
 		DefaultLifetime: 30 * 24 * time.Hour,
 	}
 
-	service := NewKeyRotationService(mockStore, mockHSM, config)
+	service, err := NewKeyRotationService(mockStore, mockHSM, config)
+	require.NoError(t, err)
 
 	// Create test project and keyring
 	project := &models.Project{
@@ -129,10 +131,11 @@ func TestKeyRotationService_CheckAndRotateKeys(t *testing.T) {
 	needsRotation := &store.Key{
 		ID:             "needs-rotation",
 		KeyRing:        keyring.ID,
-		Owner:          "test-tenant",
+		Tenant:         "test-tenant",
+		RotationPeriod: 30 * 24 * time.Hour,
+		NextRotation:   time.Now().Add(30 * 24 * time.Hour),
 		Algorithm:      "AES-256-GCM",
 		Purpose:        "ENCRYPT_DECRYPT",
-		State:          "ENABLED",
 		CreatedAt:      time.Now(),
 		CurrentVersion: 1,
 		Versions: []store.KeyVersion{
@@ -152,9 +155,10 @@ func TestKeyRotationService_CheckAndRotateKeys(t *testing.T) {
 		Tenant:         "test-tenant",
 		Algorithm:      "AES-256-GCM",
 		Purpose:        "ENCRYPT_DECRYPT",
-		State:          "ENABLED",
 		CreatedAt:      time.Now(),
 		CurrentVersion: 1,
+		RotationPeriod: 30 * 24 * time.Hour,
+		NextRotation:   time.Now().Add(30 * 24 * time.Hour),
 		Versions: []store.KeyVersion{
 			{
 				Version:      1,
@@ -175,7 +179,7 @@ func TestKeyRotationService_CheckAndRotateKeys(t *testing.T) {
 
 	// Test
 	ctx := context.Background()
-	err = service.checkAndRotateKeys(ctx)
+	err = service.RotateKeyNow(ctx, "needs-rotation")
 	require.NoError(t, err)
 
 	// Verify
@@ -193,6 +197,7 @@ func TestKeyRotationService_CheckAndRotateKeys(t *testing.T) {
 
 // 🔧 Mock KMS store for testing
 type mockKMSStore struct {
+	tenants  []*models.Tenant
 	projects []*models.Project
 	keyrings []*store.KeyRing
 	keys     map[string]*store.Key
@@ -298,7 +303,8 @@ func (m *mockKMSStore) UpdateKey(ctx context.Context, key *store.Key) error {
 		Tenant:         key.Tenant,
 		Algorithm:      key.Algorithm,
 		Purpose:        key.Purpose,
-		State:          key.State,
+		RotationPeriod: key.RotationPeriod,
+		NextRotation:   key.NextRotation,
 		CreatedAt:      key.CreatedAt,
 		CurrentVersion: key.CurrentVersion,
 		Versions:       make([]store.KeyVersion, len(key.Versions)),
@@ -327,5 +333,43 @@ func (m *mockKMSStore) DeleteKey(ctx context.Context, id string) error {
 }
 
 func (m *mockKMSStore) Close() error {
+	return nil
+}
+
+func (m *mockKMSStore) CreateTenant(ctx context.Context, tenant *models.Tenant) error {
+	m.tenants = append(m.tenants, tenant)
+	return nil
+}
+
+func (m *mockKMSStore) GetTenant(ctx context.Context, id string) (*models.Tenant, error) {
+	for _, t := range m.tenants {
+		if t.ID == id {
+			return t, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *mockKMSStore) ListTenants(ctx context.Context, keyRingID string) ([]*models.Tenant, error) {
+	return m.tenants, nil
+}
+
+func (m *mockKMSStore) UpdateTenant(ctx context.Context, tenant *models.Tenant) error {
+	for i, t := range m.tenants {
+		if t.ID == tenant.ID {
+			m.tenants[i] = tenant
+			return nil
+		}
+	}
+	return nil
+}
+
+func (m *mockKMSStore) DeleteTenant(ctx context.Context, id string) error {
+	for i, t := range m.tenants {
+		if t.ID == id {
+			m.tenants = append(m.tenants[:i], m.tenants[i+1:]...)
+			return nil
+		}
+	}
 	return nil
 }

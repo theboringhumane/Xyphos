@@ -27,10 +27,18 @@ type KMSStore interface {
 	GetKeyRing(ctx context.Context, id string) (*KeyRing, error)
 	DeleteKeyRing(ctx context.Context, id string) error
 
+	// Tenant operations
+	CreateTenant(ctx context.Context, tenant *Tenant) error
+	GetTenant(ctx context.Context, name string) (*Tenant, error)
+	ListTenants(ctx context.Context, keyRingID string) ([]*Tenant, error)
+	UpdateTenant(ctx context.Context, tenant *Tenant) error
+	DeleteTenant(ctx context.Context, id string) error
+
 	// Key operations
 	CreateKey(ctx context.Context, key *Key) error
-	ListKeys(ctx context.Context, keyringID, tenant string) ([]*Key, error)
+	ListKeys(ctx context.Context, keyringName, tenant string) ([]*Key, error)
 	GetKey(ctx context.Context, id string) (*Key, error)
+	GetKeyByName(ctx context.Context, name string) (*Key, error)
 	UpdateKey(ctx context.Context, key *Key) error
 	DeleteKey(ctx context.Context, id string) error
 
@@ -220,7 +228,3 @@ func (s *BadgerKMSStore) ListAllProjects(ctx context.Context) ([]*models.Project
 	}
 	return projects, nil
 }
-
-// Implement remaining methods similarly...
-// The actual implementation would include all methods defined in the KMSStore interface
-// Each method would follow similar patterns of using BadgerDB transactions and JSON marshaling

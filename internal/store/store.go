@@ -10,38 +10,56 @@ import (
 // 🗄️ Store interface defines operations for managing KMS resources
 type Store interface {
 	KMSStore
+	// User operations
 	UserStore
+}
+
+// 🏢 Tenant represents a tenant in a keyring
+type Tenant struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	KeyRing     string            `json:"key_ring"`
+	Location    string            `json:"location"`
+	Description string            `json:"description"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+	Labels      map[string]string `json:"labels"`
 }
 
 // 💍 KeyRing represents a collection of cryptographic keys
 type KeyRing struct {
-	ID         string    `json:"id"`
-	ProjectID  string    `json:"project_id"`
-	LocationID string    `json:"location_id"`
-	Name       string    `json:"name"`
-	Owner      string    `json:"owner"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID          string            `json:"id"`
+	ProjectID   string            `json:"project_id"`
+	LocationID  string            `json:"location_id"`
+	Name        string            `json:"name"`
+	Owner       string            `json:"owner"`
+	CreatedAt   time.Time         `json:"created_at"`
+	Description string            `json:"description"`
+	Labels      map[string]string `json:"labels"`
 }
 
 // 🔑 Key represents a cryptographic key
 type Key struct {
-	ID             string       `json:"id"`
-	KeyRing        string       `json:"keyring"`
-	Owner          string       `json:"owner"`
-	Tenant         string       `json:"tenant"`
-	Algorithm      string       `json:"algorithm"`
-	Purpose        string       `json:"purpose"`
-	State          string       `json:"state"`
-	CreatedAt      time.Time    `json:"created_at"`
-	Versions       []KeyVersion `json:"versions"`
-	CurrentVersion int          `json:"current_version"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Algorithm      string            `json:"algorithm"`
+	Purpose        string            `json:"purpose"`
+	CurrentVersion int               `json:"current_version"`
+	Versions       []KeyVersion      `json:"versions"`
+	CreatedAt      time.Time         `json:"created_at"`
+	KeyRing        string            `json:"key_ring"`
+	Tenant         string            `json:"tenant"`
+	RotationPeriod time.Duration     `json:"rotation_period"`
+	NextRotation   time.Time         `json:"next_rotation"`
+	Labels         map[string]string `json:"labels"`
 }
 
-// 📦 KeyVersion represents a specific version of a key
+// 🔐 KeyVersion represents a version of a cryptographic key
 type KeyVersion struct {
 	Version      int       `json:"version"`
 	State        string    `json:"state"`
 	CreatedAt    time.Time `json:"created_at"`
+	DeprecatedAt time.Time `json:"deprecated_at,omitempty"`
 	RotationTime time.Time `json:"rotation_time"`
 	EncryptedKey []byte    `json:"encrypted_key"`
 }

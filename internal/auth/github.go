@@ -49,9 +49,11 @@ type GitHubUser struct {
 
 // CustomClaims 🎟️ Custom claims for JWT
 type CustomClaims struct {
-	ID       string `json:"id"`
-	GithubID int    `json:"github_id"`
-	Email    string `json:"email"`
+	ClientSecret string `json:"client_secret"`
+	ClientID     string `json:"client_id"`
+	ID           string `json:"id"`
+	GithubID     int    `json:"github_id"`
+	Email        string `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -234,7 +236,6 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-
 		tokenString := authHeader[7:]
 		claims := &CustomClaims{}
 
@@ -253,27 +254,72 @@ func (h *Handler) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is not valid "})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is not valid"})
 			c.Abort()
 			return
 		}
 
-		// Get user from database
-		user, err := h.userStore.GetUserByGithubID(context.Background(), claims.GithubID)
+		if claims.ExpiresAt.Before(time.Now()) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
+			c.Abort()
+			return
+		}
+
+		if claims.NotBefore.After(time.Now()) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token is not yet valid"})
+			c.Abort()
+			return
+		}
+
+		// Handle GitHub auth token
+		if claims.GithubID != 0 {
+			user, err := h.userStore.GetUserByGithubID(context.Background(), claims.GithubID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+				c.Abort()
+				return
+			}
+
+			if user == nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+				c.Abort()
+				return
+			}
+
+			c.Set("user", user)
+			c.Set("claims", claims)
+			c.Next()
+			return
+		}
+
+		// Handle client config token
+		clientConfig, err := h.userStore.GetClientConfigByClientID(context.Background(), claims.ClientID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get client config"})
 			c.Abort()
 			return
 		}
 
-		if user == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		if clientConfig == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Client config not found"})
 			c.Abort()
 			return
 		}
 
-		// Set user in context
-		c.Set("user", user)
+		if clientConfig.ClientSecret != claims.ClientSecret {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid client secret"})
+			c.Abort()
+			return
+		}
+
+		if clientConfig.ExpiresAt.Before(time.Now()) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Client config has expired"})
+			c.Abort()
+			return
+		}
+
+		c.Set("clientConfig", clientConfig)
+		c.Set("claims", claims)
 		c.Next()
 	}
 }

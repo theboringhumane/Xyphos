@@ -105,14 +105,15 @@ func TestKeyOperations(t *testing.T) {
 
 	key := &Key{
 		ID:             "test-key",
-		KeyRing:        "test-keyring",
-		Owner:          "test-tenant",
+		Name:           "Test Key",
 		Algorithm:      "AES-256",
 		Purpose:        "ENCRYPT_DECRYPT",
-		State:          "ENABLED",
-		CreatedAt:      time.Now(),
-		Versions:       []KeyVersion{initialVersion},
+		Tenant:         "test-tenant",
 		CurrentVersion: 1,
+		Versions:       []KeyVersion{initialVersion},
+		CreatedAt:      time.Now(),
+		RotationPeriod: 24 * time.Hour,
+		NextRotation:   time.Now().Add(24 * time.Hour),
 	}
 
 	// Test creation
@@ -163,7 +164,7 @@ func TestKeyOperations(t *testing.T) {
 	}
 
 	// Test listing
-	keys, err := store.ListKeys(ctx, key.KeyRing, key.Tenant)
+	keys, err := store.ListKeys(ctx, key.ID, key.Tenant)
 	if err != nil {
 		t.Fatalf("Failed to list keys: %v", err)
 	}
@@ -204,14 +205,15 @@ func TestKeyVersionManagement(t *testing.T) {
 
 	key := &Key{
 		ID:             "test-key",
-		KeyRing:        "test-keyring",
-		Tenant:         "test-tenant",
+		Name:           "Test Key",
 		Algorithm:      "AES-256",
 		Purpose:        "ENCRYPT_DECRYPT",
-		State:          "ENABLED",
-		CreatedAt:      time.Now(),
-		Versions:       []KeyVersion{initialVersion},
+		Tenant:         "test-tenant",
 		CurrentVersion: 1,
+		Versions:       []KeyVersion{initialVersion},
+		CreatedAt:      time.Now(),
+		RotationPeriod: 24 * time.Hour,
+		NextRotation:   time.Now().Add(24 * time.Hour),
 	}
 
 	// Create key

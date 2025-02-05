@@ -32,3 +32,25 @@ func NewKeyring(projectID, locationID, name, description, owner string) *Keyring
 		Owner:       owner,
 	}
 }
+
+// Tenant represents a tenant in a keyring
+type Tenant struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Keyring   string    `json:"keyring"`
+	Owner     string    `json:"owner"`
+}
+
+// NewTenant creates a new tenant with default values
+func NewTenant(name, keyring, owner string) *Tenant {
+	return &Tenant{
+		ID:        uuid.New().String(),
+		Name:      name,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Keyring:   keyring,
+		Owner:     owner,
+	}
+}

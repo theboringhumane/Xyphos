@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
-	"xyphos/internal/auth"
 	"xyphos/internal/crypto"
 	"xyphos/internal/hsm"
 	"xyphos/internal/store"
@@ -49,14 +49,12 @@ func (h *CryptoHandler) HandleEncrypt(c *gin.Context) {
 		return
 	}
 
-	// Get tenant from claims
-	claims, exists := c.Get("claims")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
+	// get tenant from request
+	tenant := c.Param("tenantId")
+	if tenant == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing tenant"})
 		return
 	}
-
-	tenant := claims.(*auth.Claims).Tenant
 
 	// Find keyring by name
 	keyring, err := h.keyringHandler.findByName(tenant, keyringName)
@@ -87,6 +85,10 @@ func (h *CryptoHandler) HandleEncrypt(c *gin.Context) {
 	}
 
 	currentVersion := key.Versions[len(key.Versions)-1]
+	if currentVersion.State != "ENABLED" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "current key version is not enabled"})
+		return
+	}
 
 	// Decode plaintext from base64
 	plaintextBytes, err := base64.StdEncoding.DecodeString(req.Plaintext)
@@ -130,6 +132,9 @@ func (h *CryptoHandler) HandleEncrypt(c *gin.Context) {
 		"ciphertext": result,
 		"keyVersion": currentVersion.Version,
 		"keyring":    keyringName,
+		"keyId":      key.ID,
+		"algorithm":  key.Algorithm,
+		"state":      currentVersion.State,
 	})
 }
 
@@ -143,6 +148,7 @@ func (h *CryptoHandler) HandleDecrypt(c *gin.Context) {
 
 	var req struct {
 		Ciphertext string `json:"ciphertext" binding:"required"`
+		KeyID      string `json:"keyId" binding:"required"`
 		KeyVersion int    `json:"keyVersion" binding:"required"`
 		Purpose    string `json:"purpose" binding:"required"`
 	}
@@ -152,13 +158,12 @@ func (h *CryptoHandler) HandleDecrypt(c *gin.Context) {
 		return
 	}
 
-	// Get tenant from claims
-	claims, exists := c.Get("claims")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing claims"})
+	// get tenant from request
+	tenant := c.Param("tenantId")
+	if tenant == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing tenant"})
 		return
 	}
-	tenant := claims.(*auth.Claims).Tenant
 
 	// Find keyring by name
 	keyring, err := h.keyringHandler.findByName(tenant, keyringName)
@@ -171,14 +176,14 @@ func (h *CryptoHandler) HandleDecrypt(c *gin.Context) {
 		return
 	}
 
-	// Find key for purpose
-	key, err := h.keyHandler.findActiveKeyForPurpose(keyring.ID, tenant, req.Purpose)
+	// Find key by ID
+	key, err := h.keyHandler.findKey(req.KeyID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find key"})
 		return
 	}
 	if key == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no key found for purpose"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "no key found for ID"})
 		return
 	}
 
@@ -196,9 +201,12 @@ func (h *CryptoHandler) HandleDecrypt(c *gin.Context) {
 		return
 	}
 
-	// Allow decryption with deprecated keys
+	// Allow decryption with both ENABLED and DEPRECATED versions
 	if keyVersion.State != "ENABLED" && keyVersion.State != "DEPRECATED" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "key version is not valid for decryption"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("key version %d is in state %s and cannot be used for decryption",
+				req.KeyVersion, keyVersion.State),
+		})
 		return
 	}
 
@@ -243,5 +251,7 @@ func (h *CryptoHandler) HandleDecrypt(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"plaintext":  result,
 		"keyVersion": keyVersion.Version,
+		"state":      keyVersion.State,
+		"keyId":      key.ID,
 	})
 }

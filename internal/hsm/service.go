@@ -33,6 +33,9 @@ type Service interface {
 	// GenerateKeyPair generates a new public/private key pair
 	GenerateKeyPair() ([]byte, []byte, error)
 
+	// RotateMasterKey rotates a master key
+	RotateMasterKey(ctx context.Context, locationID string) error
+
 	// Close closes the HSM service
 	Close() error
 }

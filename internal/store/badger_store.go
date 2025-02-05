@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 	"xyphos/internal/models"
 
 	"github.com/dgraph-io/badger/v4"
@@ -129,37 +130,29 @@ func (s *BadgerStore) CreateKey(ctx context.Context, key *Key) error {
 		}
 
 		// Store in keyring's key list
-		return txn.Set([]byte(fmt.Sprintf("keyring:%s:keys:%s", key.KeyRing, key.ID)), []byte{1})
+		return txn.Set([]byte(fmt.Sprintf("keyring:%s:keys:%s", key.ID, key.ID)), []byte{1})
 	})
 }
 
-func (s *BadgerStore) ListKeys(ctx context.Context, keyringID, tenant string) ([]*Key, error) {
+func (s *BadgerStore) ListKeys(ctx context.Context, keyringName, tenant string) ([]*Key, error) {
 	var keys []*Key
 
 	err := s.db.View(func(txn *badger.Txn) error {
-		prefix := []byte(fmt.Sprintf("keyring:%s:keys:", keyringID))
+		prefix := []byte(fmt.Sprintf("key:%s", keyringName))
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			keyID := string(it.Item().Key())[len(prefix):]
-
-			// Get the key data
-			item, err := txn.Get([]byte(fmt.Sprintf("key:%s", keyID)))
-			if err != nil {
-				continue // Skip invalid keys
-			}
-
 			var key Key
-			err = item.Value(func(val []byte) error {
+			err := it.Item().Value(func(val []byte) error {
 				return json.Unmarshal(val, &key)
 			})
 			if err != nil {
 				continue // Skip invalid keys
 			}
 
-			// Only return keys for the specified tenant
-			if key.Tenant == tenant {
+			// Only return keys for the specified keyring and tenant
+			if key.KeyRing == keyringName && key.Tenant == tenant {
 				keys = append(keys, &key)
 			}
 		}
@@ -195,6 +188,42 @@ func (s *BadgerStore) GetKey(ctx context.Context, id string) (*Key, error) {
 	return key, nil
 }
 
+func (s *BadgerStore) GetKeyByName(ctx context.Context, name string) (*Key, error) {
+	var key *Key
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		prefix := []byte("key:")
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			var k Key
+			err := it.Item().Value(func(val []byte) error {
+				return json.Unmarshal(val, &k)
+			})
+			if err != nil {
+				continue
+			}
+
+			if k.Name == name {
+				key = &k
+				return nil
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get key by name: %w", err)
+	}
+
+	if key == nil {
+		return nil, fmt.Errorf("key not found with name: %s", name)
+	}
+
+	return key, nil
+}
+
 func (s *BadgerStore) UpdateKey(ctx context.Context, key *Key) error {
 	return s.db.Update(func(txn *badger.Txn) error {
 		data, err := json.Marshal(key)
@@ -226,7 +255,7 @@ func (s *BadgerStore) DeleteKey(ctx context.Context, id string) error {
 		}
 
 		// Delete from keyring's key list
-		if err := txn.Delete([]byte(fmt.Sprintf("keyring:%s:keys:%s", key.KeyRing, id))); err != nil {
+		if err := txn.Delete([]byte(fmt.Sprintf("keyring:%s:keys:%s", key.ID, id))); err != nil {
 			return fmt.Errorf("failed to delete key from keyring list: %w", err)
 		}
 
@@ -547,4 +576,136 @@ func (s *BadgerStore) GetLocation(ctx context.Context, id string) (*models.Locat
 		}
 	}
 	return nil, fmt.Errorf("location not found")
+}
+
+// 🏢 Tenant operations
+func (s *BadgerStore) CreateTenant(ctx context.Context, tenant *Tenant) error {
+	return s.db.Update(func(txn *badger.Txn) error {
+		data, err := json.Marshal(tenant)
+		if err != nil {
+			return fmt.Errorf("failed to marshal tenant: %w", err)
+		}
+
+		// Store by ID
+		if err := txn.Set([]byte(fmt.Sprintf("tenant:%s", tenant.ID)), data); err != nil {
+			return fmt.Errorf("failed to store tenant: %w", err)
+		}
+
+		// Store in keyring's tenant list
+		return txn.Set([]byte(fmt.Sprintf("keyring:%s:tenants:%s", tenant.KeyRing, tenant.ID)), []byte{1})
+	})
+}
+
+func (s *BadgerStore) GetTenant(ctx context.Context, name string) (*Tenant, error) {
+	var tenant *Tenant
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		// Iterate through all tenants to find by name
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+
+		prefix := []byte("tenant:")
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			var t Tenant
+			err := it.Item().Value(func(val []byte) error {
+				return json.Unmarshal(val, &t)
+			})
+			if err != nil {
+				continue // Skip invalid entries
+			}
+
+			if t.Name == name {
+				tenant = &t
+				return nil
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tenant by name: %w", err)
+	}
+
+	if tenant == nil {
+		return nil, fmt.Errorf("tenant with name %s not found", name)
+	}
+
+	return tenant, nil
+}
+
+func (s *BadgerStore) ListTenants(ctx context.Context, keyRingID string) ([]*Tenant, error) {
+	var tenants []*Tenant
+
+	err := s.db.View(func(txn *badger.Txn) error {
+		prefix := []byte(fmt.Sprintf("keyring:%s:tenants:", keyRingID))
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+
+		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+			tenantID := string(it.Item().Key())[len(prefix):]
+
+			// Get the tenant data
+			item, err := txn.Get([]byte(fmt.Sprintf("tenant:%s", tenantID)))
+			if err != nil {
+				continue // Skip invalid tenants
+			}
+
+			var tenant Tenant
+			err = item.Value(func(val []byte) error {
+				return json.Unmarshal(val, &tenant)
+			})
+			if err != nil {
+				continue // Skip invalid tenants
+			}
+
+			tenants = append(tenants, &tenant)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tenants: %w", err)
+	}
+	return tenants, nil
+}
+
+func (s *BadgerStore) UpdateTenant(ctx context.Context, tenant *Tenant) error {
+	return s.db.Update(func(txn *badger.Txn) error {
+		data, err := json.Marshal(tenant)
+		if err != nil {
+			return fmt.Errorf("failed to marshal tenant: %w", err)
+		}
+
+		tenant.UpdatedAt = time.Now()
+		return txn.Set([]byte(fmt.Sprintf("tenant:%s", tenant.ID)), data)
+	})
+}
+
+func (s *BadgerStore) DeleteTenant(ctx context.Context, id string) error {
+	return s.db.Update(func(txn *badger.Txn) error {
+		// Get tenant first to get keyring ID
+		item, err := txn.Get([]byte(fmt.Sprintf("tenant:%s", id)))
+		if err != nil {
+			if err == badger.ErrKeyNotFound {
+				return nil
+			}
+			return fmt.Errorf("failed to get tenant: %w", err)
+		}
+
+		var tenant Tenant
+		err = item.Value(func(val []byte) error {
+			return json.Unmarshal(val, &tenant)
+		})
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal tenant: %w", err)
+		}
+
+		// Delete from keyring's tenant list
+		if err := txn.Delete([]byte(fmt.Sprintf("keyring:%s:tenants:%s", tenant.KeyRing, id))); err != nil {
+			return fmt.Errorf("failed to delete tenant from keyring list: %w", err)
+		}
+
+		// Delete tenant
+		return txn.Delete([]byte(fmt.Sprintf("tenant:%s", id)))
+	})
 }

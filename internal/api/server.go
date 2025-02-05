@@ -149,8 +149,17 @@ func (s *Server) setupRoutes() {
 					keyrings.GET("", s.kmsHandler.ListKeyrings)
 					keyrings.GET("/:keyringId", s.kmsHandler.GetKeyring)
 
+					// 💍 Tenant routes
+					tenants := keyrings.Group("/:keyringId/tenants")
+					{
+						tenants.POST("", s.kmsHandler.CreateTenant)
+						tenants.GET("", s.kmsHandler.ListTenants)
+						tenants.GET("/:tenantId", s.kmsHandler.GetTenant)
+						tenants.PUT("/:tenantId", s.kmsHandler.UpdateTenant)
+					}
+
 					// 🔑 CryptoKey routes
-					keys := keyrings.Group("/:keyringId/:tenantId/keys")
+					keys := tenants.Group("/:tenantId/keys")
 					{
 						keys.POST("", s.kmsHandler.CreateCryptoKey)
 						keys.GET("", s.kmsHandler.ListCryptoKeys)

@@ -268,3 +268,40 @@ func (h *softwareHSM) GenerateKeyPair() ([]byte, []byte, error) {
 
 	return pubBytes, privBytes, nil
 }
+
+// 🔄 RotateMasterKey rotates a master key
+func (h *softwareHSM) RotateMasterKey(ctx context.Context, locationID string) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.closed {
+		return fmt.Errorf("hsm is closed")
+	}
+
+	// Generate new master key material
+	newMasterKey := make([]byte, 32) // 256-bit key
+	if _, err := rand.Read(newMasterKey); err != nil {
+		return fmt.Errorf("❌ failed to generate new master key: %w", err)
+	}
+
+	// Create new AEAD with the new master key
+	block, err := aes.NewCipher(newMasterKey)
+	if err != nil {
+		return fmt.Errorf("❌ failed to create cipher: %w", err)
+	}
+
+	newAead, err := cipher.NewGCM(block)
+	if err != nil {
+		return fmt.Errorf("❌ failed to create GCM: %w", err)
+	}
+
+	// Update the HSM's master key and AEAD
+	h.masterKey = newMasterKey
+	h.aead = newAead
+
+	// Note: The LocationMasterKeyManager will handle the persistent storage
+	// and caching of the master key. The HSM only manages the in-memory
+	// cryptographic operations.
+
+	return nil
+}

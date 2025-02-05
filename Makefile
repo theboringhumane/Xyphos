@@ -6,6 +6,7 @@ TS_CLIENT_DIR=clients/typescript
 DOCS_DIR=docs
 API_DOCS_DIR=$(DOCS_DIR)/api
 CLIENT_DOCS_DIR=$(DOCS_DIR)/clients
+MASTER_KEY_FOLDER=/var/lib/xyphos
 
 # 🔨 Build commands
 .PHONY: build
@@ -99,9 +100,16 @@ fmt-ts-client:
 	@echo "📦 Formatting TypeScript code..."
 	cd $(TS_CLIENT_DIR) && npm run format
 
+# create master key folder
+.PHONY: create-master-key-folder
+create-master-key-folder:
+	@echo "🔑 Creating master key folder..."
+	mkdir -p $(MASTER_KEY_FOLDER) 
+	chmod 700 $(MASTER_KEY_FOLDER)
+
 # 🚀 Run commands
 .PHONY: run
-run:
+run: create-master-key-folder
 	@echo "🚀 Running $(BINARY_NAME)..."
 	go run ./cmd/main.go
 

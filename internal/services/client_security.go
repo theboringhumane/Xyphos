@@ -26,7 +26,6 @@ type ClientSecurityService struct {
 	serverKeyPair   *rsa.PrivateKey // Server's key pair for testing
 	serverPublicKey string          // Cached PEM-encoded public key
 	keyCache        *sync.Map
-	hsmClient       HSMClient
 	connections     chan *HSMConnection
 	maxPoolSize     int
 }

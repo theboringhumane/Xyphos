@@ -45,6 +45,19 @@ type KeyRing struct {
 	CreatedAt time.Time `json:"created_at" example:"2025-02-04T12:00:00Z"`
 }
 
+// Tenant represents a tenant in a keyring
+type Tenant struct {
+	ID        string    `json:"id" example:"tenant-123"`
+	Name      string    `json:"name" example:"Production"`
+	CreatedAt time.Time `json:"created_at" example:"2025-02-04T12:00:00Z"`
+}
+
+// CreateTenantRequest represents the request to create a new tenant
+// @Description Request body for creating a new tenant
+type CreateTenantRequest struct {
+	Name string `json:"name" example:"Production" binding:"required"`
+}
+
 // CreateKeyRingRequest represents the request to create a new keyring
 // @Description Request body for creating a new keyring
 type CreateKeyRingRequest struct {
