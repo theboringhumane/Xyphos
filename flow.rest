@@ -73,67 +73,107 @@ X-Response-Encrypted: true
 POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 Content-Type: application/json
-# X-Request-Encrypted: true
-# X-Response-Encrypted: true
 
 {
     "name": "toxic-keyring",
     "description": "Toxic KeyRing"
 }
 
+### 💍 List KeyRings
 # @name listKeyRings
 GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings
-Authorization: Bearer {{token.response.body.token}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 X-Response-Encrypted: true
 
+### 💍 Get KeyRing
 # @name getKeyRing
-@keyringId = {{createKeyRing.response.body.id}}
+@keyringId = toxic-keyring
 GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}
-Authorization: Bearer {{token.response.body.token}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 X-Response-Encrypted: true
+
+### Tenant Management
+
+### 🔑 Create Tenant
+# @name createTenant
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
+Content-Type: application/json
+
+{
+    "name": "toxic-tenant",
+    "description": "Toxic Tenant"
+}
+
+### 🔑 List Tenants
+# @name listTenants
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
+Content-Type: application/json
+
+### 🔑 Get Tenant
+# @name getTenant
+@tenantId = {{listTenants.response.body[0].name}}
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants/toxic-tenant
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
+Content-Type: application/json
+
+### 🔑 Update Tenant
+# @name updateTenant
+PUT {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants/{{tenantId}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
+Content-Type: application/json
+
+{
+    "name": "toxic-tenant-updated",
+    "description": "Toxic Tenant updated"
+}
 
 ### 🔑 CryptoKey Management
 
 ### 🔑 Create CryptoKey
 # @name createCryptoKey
-POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys
-Authorization: Bearer {{token.response.body.token}}
+@tenantId = toxic-tenant
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants/{{tenantId}}/keys
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 Content-Type: application/json
-X-Request-Encrypted: true
-X-Response-Encrypted: true
 
 {
-    "name": "my-key",
+    "name": "KEY-{{tenantId}}",
     "purpose": "ENCRYPT_DECRYPT",
-    "algorithm": "AES256-GCM",
-    "rotationPeriod": "2592000s" // 30 days
+    "algorithm": "AES-256-GCM",
+    "rotation_period": 2592000
 }
 
+### 🔑 List CryptoKeys
 # @name listCryptoKeys
-GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys
-Authorization: Bearer {{token.response.body.token}}
-X-Response-Encrypted: true
+@keyringId = toxic-keyring
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants/{{tenantId}}/keys
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 
+### 🔑 Get CryptoKey
 # @name getCryptoKey
-@keyId = {{createCryptoKey.response.body.id}}
-GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}
-Authorization: Bearer {{token.response.body.token}}
+@tenantId = toxic-tenant
+@keyringId = toxic-keyring
+@keyId = KEY-{{tenantId}}
+GET {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants/{{tenantId}}/keys/{{keyId}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 X-Response-Encrypted: true
 
 # @name rotateCryptoKey
-POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}/rotate
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants/{{tenantId}}/keys/{{keyId}}/rotate
 Authorization: Bearer {{token.response.body.token}}
 X-Response-Encrypted: true
 
 ### 🔒 Encryption Operations
 
 # @name encrypt
-POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}/encrypt
-Authorization: Bearer {{token.response.body.token}}
+@keyId = KEY-{{tenantId}}
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants/{{tenantId}}/keys/{{keyId}}/encrypt
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 Content-Type: application/json
 X-Request-Encrypted: true
 X-Response-Encrypted: true
-X-HSM-Encrypt: true
 
 {
     "plaintext": "SGVsbG8gV29ybGQ=", // Base64 encoded "Hello World"
@@ -141,8 +181,9 @@ X-HSM-Encrypt: true
 }
 
 # @name decrypt
-POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/keys/{{keyId}}/decrypt
-Authorization: Bearer {{token.response.body.token}}
+@keyId = KEY-{{tenantId}}
+POST {{baseUrl}}/api/projects/{{projectId}}/locations/{{locationId}}/keyrings/{{keyringId}}/tenants/{{tenantId}}/keys/{{keyId}}/decrypt
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3YzE3MmUwLTdhZDQtNGE3MS04ZDk4LTBjNGIyM2YwOTk4ZiIsImdpdGh1Yl9pZCI6NDY5NzQyMjMsImVtYWlsIjoibWVAaWFtaGFyc2guZGV2IiwiZXhwIjoxNzM4NzYwOTMyLCJuYmYiOjE3Mzg2NzQ1MzIsImlhdCI6MTczODY3NDUzMn0.HaFVFW9o_O-cp6BpCUQGH6fYMiOpqVv4YxHFruG8Ws8
 Content-Type: application/json
 X-Request-Encrypted: true
 X-Response-Encrypted: true
