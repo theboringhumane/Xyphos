@@ -22,6 +22,10 @@ Xyphos is a complete key management solution with two main components:
    - WebCrypto API integration
    - Real-time key management
 
+## 🔐 Encryption Documentation
+
+For detailed information on the encryption process, key management, and client configuration, see the [Encryption Documentation](docs/encryption.md).
+
 ## 🏗️ System Architecture
 
 ```mermaid
